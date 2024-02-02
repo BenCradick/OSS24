@@ -1,5 +1,4 @@
 FROM ubuntu/focal
-COPY . ~/Workspace/OSS24
-WORKDIR ~/Workspace/OSS24
+COPY . ./OSS24
 RUN make
 CMD ["./oss"]
