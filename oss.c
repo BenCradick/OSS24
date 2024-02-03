@@ -2,12 +2,17 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <stdlib.h>
+#include <sys/types.h>
 
 int main(int argc,  char* argv[]){
     int Opt;
     int TotalChildren = -1;
     int MaxProcess = -1;
-    int Iterations = -1;
+    char* Iterations = NULL;
+    pid_t isParent = -1;
+    int currentChildren =  0;
+    int AllChildren = 0;
+    int status;
 
 
     while((Opt = getopt(argc, argv, "n:s:t:h")) != -1){
@@ -28,16 +33,33 @@ int main(int argc,  char* argv[]){
                 printf("Max Process: %d\n", MaxProcess);
                 break;
             case 't':
-                Iterations = atoi(optarg);
-                printf("Iterations: %d\n", Iterations);
+                Iterations = optarg;
+                printf("Iterations: %s\n", Iterations);
                 break;
             default:
                 printf("Option ?\n");
                 break;
         }
 
-        if(TotalChildren == -1 || MaxProcess == -1 || Iterations == -1){
+        if(TotalChildren == -1 || MaxProcess == -1 || Iterations == NULL){
             printf("Please enter all the arguments\n");
+            return 1;
+        }
+    }
+    // AllChildren is number of chilren run, TotalChildren is the number specified.
+    while(AllChildren < TotalChildren){
+        
+        isParent = fork();
+        if(isParent == 0){
+            execvp("./user", Iterations);
+            wait(&status);
+            return 0;
+        }
+        else if (isParent == 1){
+
+        }
+        else{
+            printf("Error: Failed to launch child process\n");
             return 1;
         }
     }
