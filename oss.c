@@ -39,18 +39,18 @@ int main(int argc,  char* argv[]){
                 return 0;
             case 'n':
                 TotalChildren = atoi(optarg);
-                printf("Total Children: %d\n", TotalChildren);
+                // printf("Total Children: %d\n", TotalChildren);
                 break;
             case 's':
                 MaxProcess = atoi(optarg);
                 if(MaxProcess >= 20){
                     MaxProcess = 20;
                 }
-                printf("Max Process: %d\n", MaxProcess);
+                // printf("Max Process: %d\n", MaxProcess);
                 break;
             case 't':
                 Iterations = optarg;
-                printf("Iterations: %s\n", Iterations);
+                // printf("Iterations: %s\n", Iterations);
                 break;
             default:
                 printf("Option ?\n");
@@ -78,7 +78,7 @@ int main(int argc,  char* argv[]){
     }
     // AllChildren is number of chilren run, TotalChildren is the number specified.
     while(AllChildren < TotalChildren){
-        
+        //check for finished children without hanging
         ChildExited = waitpid(-1, &status, WNOHANG);
         if(ChildExited > 0){
             CurrentChildren--;
@@ -94,9 +94,11 @@ int main(int argc,  char* argv[]){
             }
             CurrentChildren--;
         }
+        // for handling the first iteration of the loop
         else if (errno == ECHILD && CurrentChildren == 0){
             errno = 0;
         }
+        //handles actual errors
         else if (ChildExited < 0 && errno != ECHILD){
             printf("Error: Failed to wait for child process\nError: %s\n", strerror(errno));
             return 1;
@@ -125,11 +127,13 @@ int main(int argc,  char* argv[]){
         
         }
         
+        // keep track of the number of children
         CurrentChildren++;
         AllChildren++;
         
         
     }
+    // Waits for all child processes to finish
     while(CurrentChildren > 0){
         ChildExited = waitpid(-1, &status, 0);
         if(ChildExited < 0){
