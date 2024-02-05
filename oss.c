@@ -138,7 +138,6 @@ int main(int argc,  char* argv[]){
         }
 
         CurrentChildren--;
-        printf("Current Children: %d\n", CurrentChildren);
     }
 
     return 0;
