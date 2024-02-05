@@ -57,7 +57,9 @@ int main(int argc,  char* argv[]){
                 break;
         }
 
-        if(TotalChildren == -1 || MaxProcess == -1 || Iterations == NULL){
+        
+    }
+    if(TotalChildren == -1 || MaxProcess == -1 || Iterations == NULL){
             printf("Missing argument, assigning obnoxious default values, see the help menu.\n");
             printf("./oss [-n proc] [-s simul] [-t iter] [-h]\n");
             printf("proc: number of processes to run\n");
@@ -75,7 +77,6 @@ int main(int argc,  char* argv[]){
             }
             
         }
-    }
     // AllChildren is number of chilren run, TotalChildren is the number specified.
     while(AllChildren < TotalChildren){
         //check for finished children without hanging
