@@ -18,6 +18,8 @@ make
 ./oss -n NumberOfProcesses -s MaxConcurrentChildren -t Iterations
 ````
 
+Current configuration will produce a warning that argc isn't used, ignore it.
+
 I will hard cap the number of concurrent children at 20 to be in line with opsys limitations.
 
 
