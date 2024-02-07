@@ -20,12 +20,24 @@ int main(int argc,  char* argv[]){
     int Opt;
     int TotalChildren = -1;
     int MaxProcess = -1;
-    char* Iterations = NULL;
+    int MaxRuntime = NULL;
     pid_t IsParent = -1;
     pid_t ChildExited = -1;
     int CurrentChildren =  0;
     int AllChildren = 0;
     int status;
+
+    const int SIZE = 4;
+    const char* Seconds = "Seconds";
+    const char* NanoSeconds = "NanoSeconds";
+
+
+    //FD is short fore file
+    int SecondSharedMemoryFD;
+    void* SecondSharedMemoryPointer;
+
+    int NanoSecondSharedMemoryFD;
+    void* NanoSecondSharedMemoryPointer;
 
 
     while((Opt = getopt(argc, argv, "n:s:t:h")) != -1){
@@ -49,7 +61,7 @@ int main(int argc,  char* argv[]){
                 // printf("Max Process: %d\n", MaxProcess);
                 break;
             case 't':
-                Iterations = optarg;
+                MaxRuntime = atoi(optarg);
                 // printf("Iterations: %s\n", Iterations);
                 break;
             default:
@@ -59,7 +71,7 @@ int main(int argc,  char* argv[]){
 
         
     }
-    if(TotalChildren == -1 || MaxProcess == -1 || Iterations == NULL){
+    if(TotalChildren == -1 || MaxProcess == -1 || MaxRuntime == NULL){
             printf("Missing argument, assigning obnoxious default values, see the help menu.\n");
             printf("./oss [-n proc] [-s simul] [-t iter] [-h]\n");
             printf("proc: number of processes to run\n");
@@ -72,8 +84,8 @@ int main(int argc,  char* argv[]){
             if(MaxProcess == -1){
                 MaxProcess = 10;
             }
-            if(Iterations == NULL){
-                Iterations = "1";
+            if(MaxRuntime == NULL){
+                MaxRuntime = 7;
             }
             
         }
@@ -117,7 +129,7 @@ int main(int argc,  char* argv[]){
 
         // launches the ./user program if the process is a child
         if(IsParent == 0){
-            char *args[] = {"./user", Iterations, NULL};
+            char *args[] = {"./user", MaxRuntime, NULL};
             execvp(args[0], args);
             printf("Error: Failed to launch child process\n");
             exit(EXIT_FAILURE);
