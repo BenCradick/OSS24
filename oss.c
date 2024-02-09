@@ -14,7 +14,8 @@
 #include <bits/waitflags.h>
 #include <errno.h>
 #include <string.h>
-
+#include <sys/mman.h>
+#include <fcntl.h>
 
 int main(int argc,  char* argv[]){
     int Opt;
@@ -38,6 +39,20 @@ int main(int argc,  char* argv[]){
 
     int NanoSecondSharedMemoryFD;
     void* NanoSecondSharedMemoryPointer;
+
+    
+
+    SecondSharedMemoryFD = shm_open(Seconds, O_CREAT | O_RDWR, 0666);
+    NanoSecondSharedMemoryFD = shm_open(NanoSeconds, O_CREAT | O_RDWR, 0666);
+
+    ftruncate(SecondSharedMemoryFD, SIZE);
+    ftruncate(NanoSecondSharedMemoryFD, SIZE);
+
+    
+
+    SecondSharedMemoryPointer = mmap(0, SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, SecondSharedMemoryFD, 0);
+    NanoSecondSharedMemoryPointer = mmap(0, SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, NanoSecondSharedMemoryFD, 0);
+
 
 
     while((Opt = getopt(argc, argv, "n:s:t:h")) != -1){
@@ -89,6 +104,8 @@ int main(int argc,  char* argv[]){
             }
             
         }
+
+
     // AllChildren is number of chilren run, TotalChildren is the number specified.
     while(AllChildren < TotalChildren){
         //check for finished children without hanging
@@ -156,6 +173,9 @@ int main(int argc,  char* argv[]){
 
         CurrentChildren--;
     }
+
+    shm_unlink(Seconds);
+    shm_unlink(NanoSeconds);
 
     return 0;
 }
