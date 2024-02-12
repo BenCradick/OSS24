@@ -16,7 +16,7 @@ USER_HEADERS = user.h
 OSS_EXECUTABLE = oss
 USER_EXECUTABLE = user
 
-
+.PHONY: all
 all: $(OSS_EXECUTABLE) $(USER_EXECUTABLE)
 
 
@@ -31,6 +31,6 @@ $(USER_EXECUTABLE): $(USER_OBJ)
 %.o: %.c $(OSS_HEADERS) $(USER_HEADERS)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-
+.PHONY: clean
 clean:
 	rm -f $(OSS_OBJ) $(USER_OBJ) $(OSS_EXECUTABLE) $(USER_EXECUTABLE)
