@@ -16,10 +16,27 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <signal.h>
+#include <bits/signum-generic.h>
 
 #define BILLION 1000000000
+#define MILLION 1000000
 
-long combineTime(int seconds, int nanoSeconds);
+struct ProcessControlBlock
+{
+    int occupied;     
+    pid_t pid;        
+    unsigned long nanoSeconds;    
+};
+struct ProcessControlBlock ProcessTable[20];
+
+void killChildren(){
+    for(int i = 0; i < 20; i++){
+        if(ProcessTable[i].occupied == 1){
+            kill(ProcessTable[i].pid, SIGKILL);
+        }
+    }
+}
 
 int main(int argc,  char* argv[]){
     int Opt;
@@ -32,34 +49,36 @@ int main(int argc,  char* argv[]){
     int CurrentChildren =  0;
     int AllChildren = 0;
     int status;
+
+    unsigned long value = 0;
+    unsigned long increment = 1000000;
     
 
     const int SIZE = 8;
-    const char* Seconds = "Seconds";
+    
     const char* NanoSeconds = "NanoSeconds";
 
 
-    //FD is short fore file
-    int SecondSharedMemoryFD;
-    void* SecondSharedMemoryPointer;
+    //FD is short fore file descriptor
 
     int NanoSecondSharedMemoryFD;
     void* NanoSecondSharedMemoryPointer;
 
     
 
-    SecondSharedMemoryFD = shm_open(Seconds, O_CREAT | O_RDWR, 0666);
+
     NanoSecondSharedMemoryFD = shm_open(NanoSeconds, O_CREAT | O_RDWR, 0666);
 
-    ftruncate(SecondSharedMemoryFD, SIZE);
+
     ftruncate(NanoSecondSharedMemoryFD, SIZE);
 
     
 
-    SecondSharedMemoryPointer = mmap(0, SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, SecondSharedMemoryFD, 0);
+
     NanoSecondSharedMemoryPointer = mmap(0, SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, NanoSecondSharedMemoryFD, 0);
 
-
+    signal(SIGALRM, (void (*)(int))killChildren);
+    alarm(1);
 
     while((Opt = getopt(argc, argv, "n:s:t:h:i")) != -1){
         // opt arguments -n, -s, -t
@@ -69,7 +88,7 @@ int main(int argc,  char* argv[]){
                 printf("proc: number of processes to run\n");
                 printf("simul: number of processes to run at a time\n");
                 printf("iter: time limit for child\n");
-                printf("-i: iterval between process launches in ms\n");
+                printf("intervalInMsToLaunchChildren: iterval between process launches in ms\n");
                 return 0;
             case 'n':
                 TotalChildren = atoi(optarg);
@@ -118,10 +137,23 @@ int main(int argc,  char* argv[]){
 
     // AllChildren is number of chilren run, TotalChildren is the number specified.
     while(AllChildren < TotalChildren){
+
+        memcpy(NanoSecondSharedMemoryPointer, &value, sizeof(value));
+        value += increment;
+
         //check for finished children without hanging
         ChildExited = waitpid(-1, &status, WNOHANG);
         if(ChildExited > 0){
             CurrentChildren--;
+            // for each element in the process table check to see if the pid matches the pid of the child that just exited
+            for(int i = 0; i < 20; i++){
+                if(ProcessTable[i].pid == ChildExited){
+                    ProcessTable[i].occupied = 0;
+                    ProcessTable[i].pid = 0;
+                    ProcessTable[i].nanoSeconds = 0;
+                    break;
+                }
+            }
         }
 
         //If the number of active children is equal to the number of max processes
@@ -133,6 +165,16 @@ int main(int argc,  char* argv[]){
                 return 1;
             }
             CurrentChildren--;
+            for (int i = 0; i < 20; i++)
+            {
+                if (ProcessTable[i].pid == ChildExited)
+                {
+                    ProcessTable[i].occupied = 0;
+                    ProcessTable[i].pid = 0;
+                    ProcessTable[i].nanoSeconds = 0;
+                    break;
+                }
+            }
         }
         // for handling the first iteration of the loop
         else if (errno == ECHILD && CurrentChildren == 0){
@@ -170,6 +212,16 @@ int main(int argc,  char* argv[]){
         // keep track of the number of children
         CurrentChildren++;
         AllChildren++;
+
+        //add the child to the process table
+        for(int i = 0; i < 20; i++){
+            if(ProcessTable[i].occupied == 0){
+                ProcessTable[i].occupied = 1;
+                ProcessTable[i].pid = IsParent;
+                ProcessTable[i].nanoSeconds = value;
+                break;
+            }
+        }
         
         
     }
@@ -184,13 +236,9 @@ int main(int argc,  char* argv[]){
         CurrentChildren--;
     }
 
-    shm_unlink(Seconds);
     shm_unlink(NanoSeconds);
 
     return 0;
 }
 
 
-long combineTime(int seconds, int nanoSeconds){
-    return (seconds * BILLION) + nanoSeconds;
-}
