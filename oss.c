@@ -17,18 +17,24 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 
+#define BILLION 1000000000
+
+long combineTime(int seconds, int nanoSeconds);
+
 int main(int argc,  char* argv[]){
     int Opt;
     int TotalChildren = -1;
     int MaxProcess = -1;
     int MaxRuntime = NULL;
+    int launchInterval = 0;
     pid_t IsParent = -1;
     pid_t ChildExited = -1;
     int CurrentChildren =  0;
     int AllChildren = 0;
     int status;
+    
 
-    const int SIZE = 4;
+    const int SIZE = 8;
     const char* Seconds = "Seconds";
     const char* NanoSeconds = "NanoSeconds";
 
@@ -55,14 +61,15 @@ int main(int argc,  char* argv[]){
 
 
 
-    while((Opt = getopt(argc, argv, "n:s:t:h")) != -1){
+    while((Opt = getopt(argc, argv, "n:s:t:h:i")) != -1){
         // opt arguments -n, -s, -t
         switch(Opt){
             case 'h':
-                printf("./oss [-n proc] [-s simul] [-t iter] [-h]\n");
+                printf("./oss [-n proc] [-s simul] [-t timelimitForChildren] [-i intervalInMSToLaunchChildren] [-h]\n");
                 printf("proc: number of processes to run\n");
                 printf("simul: number of processes to run at a time\n");
-                printf("iter: number of iterations for user to run\n");
+                printf("iter: time limit for child\n");
+                printf("-i: iterval between process launches in ms\n");
                 return 0;
             case 'n':
                 TotalChildren = atoi(optarg);
@@ -78,6 +85,9 @@ int main(int argc,  char* argv[]){
             case 't':
                 MaxRuntime = atoi(optarg);
                 // printf("Iterations: %s\n", Iterations);
+                break;
+            case 'i':
+                launchInterval = atoi(optarg);
                 break;
             default:
                 printf("Option ?\n");
@@ -178,4 +188,9 @@ int main(int argc,  char* argv[]){
     shm_unlink(NanoSeconds);
 
     return 0;
+}
+
+
+long combineTime(int seconds, int nanoSeconds){
+    return (seconds * BILLION) + nanoSeconds;
 }
