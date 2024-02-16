@@ -44,14 +44,19 @@ int main(int argc,  char* argv[]){
     int MaxProcess = -1;
     int MaxRuntime = NULL;
     int launchInterval = 0;
-    pid_t IsParent = -1;
+    pid_t IsParent = -2;
     pid_t ChildExited = -1;
     int CurrentChildren =  0;
     int AllChildren = 0;
     int status;
 
+    int nanoMax = 0;
+    int secMax = 0;
+
     unsigned long value = 0;
     unsigned long increment = 1000000;
+
+    unsigned long nextTime = 0;
     
 
     const int SIZE = 8;
@@ -92,18 +97,17 @@ int main(int argc,  char* argv[]){
                 return 0;
             case 'n':
                 TotalChildren = atoi(optarg);
-                // printf("Total Children: %d\n", TotalChildren);
                 break;
             case 's':
                 MaxProcess = atoi(optarg);
                 if(MaxProcess >= 20){
                     MaxProcess = 20;
                 }
-                // printf("Max Process: %d\n", MaxProcess);
                 break;
             case 't':
                 MaxRuntime = atoi(optarg);
-                // printf("Iterations: %s\n", Iterations);
+                secMax = MaxRuntime / BILLION;
+                nanoMax = MaxRuntime % BILLION;                
                 break;
             case 'i':
                 launchInterval = atoi(optarg);
@@ -135,11 +139,9 @@ int main(int argc,  char* argv[]){
         }
 
 
+    memcpy(NanoSecondSharedMemoryPointer, &value, sizeof(value));
     // AllChildren is number of chilren run, TotalChildren is the number specified.
     while(AllChildren < TotalChildren){
-
-        memcpy(NanoSecondSharedMemoryPointer, &value, sizeof(value));
-        value += increment;
 
         //check for finished children without hanging
         ChildExited = waitpid(-1, &status, WNOHANG);
@@ -156,26 +158,8 @@ int main(int argc,  char* argv[]){
             }
         }
 
-        //If the number of active children is equal to the number of max processes
-        // the program will hang until a child process is finished
-        else if(CurrentChildren == MaxProcess){
-            ChildExited = waitpid(-1, &status, 0);
-            if(ChildExited < 0){
-                printf("Error: Failed to wait for child process\nError: %s\n", strerror(errno));
-                return 1;
-            }
-            CurrentChildren--;
-            for (int i = 0; i < 20; i++)
-            {
-                if (ProcessTable[i].pid == ChildExited)
-                {
-                    ProcessTable[i].occupied = 0;
-                    ProcessTable[i].pid = 0;
-                    ProcessTable[i].nanoSeconds = 0;
-                    break;
-                }
-            }
-        }
+        
+        
         // for handling the first iteration of the loop
         else if (errno == ECHILD && CurrentChildren == 0){
             errno = 0;
@@ -194,46 +178,62 @@ int main(int argc,  char* argv[]){
         * If the return value is -1, the process failed to fork
         * If the return value is greater than 0, the process is the parent
         */
-        IsParent = fork();
 
+       
+
+
+        if(CurrentChildren < MaxProcess && AllChildren < TotalChildren && nextTime <= value){
+            IsParent = fork();
+        }
         // launches the ./user program if the process is a child
         if(IsParent == 0){
-            char *args[] = {"./user", MaxRuntime, NULL};
+            char *args[] = {"./user", secMax, nanoMax, NULL};
             execvp(args[0], args);
             printf("Error: Failed to launch child process\n");
             exit(EXIT_FAILURE);
         }
-        else if (IsParent < 0){
-            printf("Error: Failed to launch child process\n");
-            exit(EXIT_FAILURE);
-        
-        }
-        
-        // keep track of the number of children
-        CurrentChildren++;
-        AllChildren++;
+        else if (IsParent > 0){
+            // keep track of the number of children
+            CurrentChildren++;
+            AllChildren++;
 
-        //add the child to the process table
-        for(int i = 0; i < 20; i++){
-            if(ProcessTable[i].occupied == 0){
-                ProcessTable[i].occupied = 1;
-                ProcessTable[i].pid = IsParent;
-                ProcessTable[i].nanoSeconds = value;
-                break;
+            //add the child to the process table
+            for(int i = 0; i < 20; i++){
+                if(ProcessTable[i].occupied == 0){
+                    ProcessTable[i].occupied = 1;
+                    ProcessTable[i].pid = IsParent;
+                    ProcessTable[i].nanoSeconds = value;
+                    break;
+                }
             }
         }
+        else if(IsParent == -1){
+                printf("Error: Failed to wait for child process\nError: %s\n", strerror(errno));
+                return 1;
+            }
+        
+        IsParent = -2;
+       
+        nextTime = value + launchInterval * MILLION;
+        value += increment;
+        memcpy(NanoSecondSharedMemoryPointer, &value, sizeof(value));
         
         
     }
     // Waits for all child processes to finish
     while(CurrentChildren > 0){
-        ChildExited = waitpid(-1, &status, 0);
+        ChildExited = waitpid(-1, &status, WNOHANG);
         if(ChildExited < 0){
             printf("Error: Failed to wait for child process\nError: %s\n", strerror(errno));
             return 1;
         }
+        if(ChildExited > 0){
+            CurrentChildren--;
+            
+        }
+        value += increment;
+        memcpy(NanoSecondSharedMemoryPointer, &value, sizeof(value));
 
-        CurrentChildren--;
     }
 
     shm_unlink(NanoSeconds);
