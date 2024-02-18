@@ -110,7 +110,7 @@ int main(int argc,  char* argv[]){
                 nanoMax = MaxRuntime % BILLION;                
                 break;
             case 'i':
-                launchInterval = atoi(optarg);
+                launchInterval = atoi(optarg) * MILLION;
                 break;
             default:
                 printf("Option ?\n");
@@ -125,8 +125,10 @@ int main(int argc,  char* argv[]){
             printf("proc: number of processes to run\n");
             printf("simul: number of processes to run at a time\n");
             printf("iter: number of iterations for user to run\n");
+            printf("intervalInMsToLaunchChildren: iterval between process launches in ms\n");
 
-            if(TotalChildren == -1){
+            if (TotalChildren == -1)
+            {
                 TotalChildren = 19;
             }
             if(MaxProcess == -1){
@@ -134,80 +136,93 @@ int main(int argc,  char* argv[]){
             }
             if(MaxRuntime == NULL){
                 MaxRuntime = 7;
+                secMax = MaxRuntime / BILLION;
+                nanoMax = MaxRuntime % BILLION;
+            }
+            if(launchInterval == 0){
+                launchInterval = 100 * MILLION;
             }
             
         }
 
+        // Documentation for the memcpy function
+        // void *memcpy(void *dest, const void * src, size_t n)
+        memcpy(NanoSecondSharedMemoryPointer, &value, sizeof(value));
+        // AllChildren is number of chilren run, TotalChildren is the number specified.
+        while (AllChildren < TotalChildren)
+        {
 
-    memcpy(NanoSecondSharedMemoryPointer, &value, sizeof(value));
-    // AllChildren is number of chilren run, TotalChildren is the number specified.
-    while(AllChildren < TotalChildren){
-
-        //check for finished children without hanging
-        ChildExited = waitpid(-1, &status, WNOHANG);
-        if(ChildExited > 0){
-            CurrentChildren--;
-            // for each element in the process table check to see if the pid matches the pid of the child that just exited
-            for(int i = 0; i < 20; i++){
-                if(ProcessTable[i].pid == ChildExited){
-                    ProcessTable[i].occupied = 0;
-                    ProcessTable[i].pid = 0;
-                    ProcessTable[i].nanoSeconds = 0;
-                    break;
+            // check for finished children without hanging
+            ChildExited = waitpid(-1, &status, WNOHANG);
+            if (ChildExited > 0)
+            {
+                CurrentChildren--;
+                // for each element in the process table check to see if the pid matches the pid of the child that just exited
+                for (int i = 0; i < 20; i++)
+                {
+                    if (ProcessTable[i].pid == ChildExited)
+                    {
+                        ProcessTable[i].occupied = 0;
+                        ProcessTable[i].pid = 0;
+                        ProcessTable[i].nanoSeconds = 0;
+                        break;
+                    }
                 }
             }
-        }
 
-        
-        
-        // for handling the first iteration of the loop
-        else if (errno == ECHILD && CurrentChildren == 0){
-            errno = 0;
-        }
-        //handles actual errors
-        else if (ChildExited < 0 && errno != ECHILD){
-            printf("Error: Failed to wait for child process\nError: %s\n", strerror(errno));
-            return 1;
-        }
+            // for handling the first iteration of the loop
+            else if (errno == ECHILD && CurrentChildren == 0)
+            {
+                errno = 0;
+            }
+            // handles actual errors
+            else if (ChildExited < 0 && errno != ECHILD)
+            {
+                printf("Error: Failed to wait for child process\nError: %s\n", strerror(errno));
+                return 1;
+            }
 
-        /*
-        * Documenting the fork() process return values for future reference
-        * For more info see: https://man7.org/linux/man-pages/man2/fork.2.html
-        * Forks the process and stores the return value in IsParent
-        * If the return value is 0, the process is a child
-        * If the return value is -1, the process failed to fork
-        * If the return value is greater than 0, the process is the parent
-        */
+            /*
+             * Documenting the fork() process return values for future reference
+             * For more info see: https://man7.org/linux/man-pages/man2/fork.2.html
+             * Forks the process and stores the return value in IsParent
+             * If the return value is 0, the process is a child
+             * If the return value is -1, the process failed to fork
+             * If the return value is greater than 0, the process is the parent
+             */
 
-       
+            if (CurrentChildren < MaxProcess && AllChildren < TotalChildren && nextTime <= value)
+            {
+                IsParent = fork();
+            }
+            // launches the ./user program if the process is a child
+            if (IsParent == 0)
+            {
+                char *args[] = {"./user", secMax, nanoMax, NULL};
+                execvp(args[0], args);
+                printf("Error: Failed to launch child process\n");
+                exit(EXIT_FAILURE);
+            }
+            else if (IsParent > 0)
+            {
+                // keep track of the number of children
+                CurrentChildren++;
+                AllChildren++;
 
-
-        if(CurrentChildren < MaxProcess && AllChildren < TotalChildren && nextTime <= value){
-            IsParent = fork();
-        }
-        // launches the ./user program if the process is a child
-        if(IsParent == 0){
-            char *args[] = {"./user", secMax, nanoMax, NULL};
-            execvp(args[0], args);
-            printf("Error: Failed to launch child process\n");
-            exit(EXIT_FAILURE);
-        }
-        else if (IsParent > 0){
-            // keep track of the number of children
-            CurrentChildren++;
-            AllChildren++;
-
-            //add the child to the process table
-            for(int i = 0; i < 20; i++){
-                if(ProcessTable[i].occupied == 0){
-                    ProcessTable[i].occupied = 1;
-                    ProcessTable[i].pid = IsParent;
-                    ProcessTable[i].nanoSeconds = value;
-                    break;
+                // add the child to the process table
+                for (int i = 0; i < 20; i++)
+                {
+                    if (ProcessTable[i].occupied == 0)
+                    {
+                        ProcessTable[i].occupied = 1;
+                        ProcessTable[i].pid = IsParent;
+                        ProcessTable[i].nanoSeconds = value;
+                        break;
+                    }
                 }
             }
-        }
-        else if(IsParent == -1){
+            else if (IsParent == -1)
+            {
                 printf("Error: Failed to wait for child process\nError: %s\n", strerror(errno));
                 return 1;
             }
