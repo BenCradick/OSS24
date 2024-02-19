@@ -37,6 +37,7 @@
 *.hex
 *user
 *oss
+*worker
 
 # Debug files
 *.dSYM/
