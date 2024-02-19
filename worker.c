@@ -2,12 +2,24 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <sys/mman.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <string.h>
 
 void format(int* seconds, int* nano);
+
+void die(){
+    printf("Worker %d has been killed\n", getpid());
+    exit(1);
+
+}
 
 int main(int argc,  char* argv[]){
     int seconds = atoi(argv[1]);
     int nano = atoi(argv[2]);
+
+    signal(SIGALRM, (void (*)(int))die);
 
     const int BILLION = 1000000000;
 
@@ -64,13 +76,16 @@ int main(int argc,  char* argv[]){
     endNano = currentNano + nano;
     format(&endSeconds, &endNano);
 
-    printf("WORKER PID:%d PPID:%d SysClockS: %d SysclockNano: %d TermTimeS: %d TermTimeNano: %d --Just Starting--\n",
+    printf("WORKER PID:%d PPID:%d SysClockSec: %d SysclockNano: %d TermTimeS: %d TermTimeNano: %d --Just Starting--\n",
      me, parent, currentSeconds, currentNano, endSeconds, endNano);
 
     endTime = (seconds * BILLION) + nano + time;
     lastTime = time;
 
+
     while(time < endTime){
+
+        // printf("endTime: %lu, time: %lu diff: %lu\n", endTime, time, endTime - time);
         // void *memcpy(void *dest, const void * src, size_t n)
         memcpy(&time, NanoSecondSharedMemoryPointer, SIZE);        
 
@@ -85,12 +100,12 @@ int main(int argc,  char* argv[]){
             endNano = currentNano + nano;
             format(&endSeconds, &endNano);
             
-            printf("WORKER PID:%d PPID:%d SysClockS: %d SysclockNano: %d TermTimeS: %d TermTimeNano: %d -- %d seconds have passed since starting\n",
+            printf("WORKER PID:%d PPID:%d SysClockSec: %d SysclockNano: %d TermTimeS: %d TermTimeNano: %d -- %d seconds have passed since starting\n",
                    me, parent, currentSeconds, currentNano, endSeconds, endNano, currentSeconds - startSeconds);
         }
     
     }
-    printf("WORKER PID:%d PPID:%d SysClockS: %d SysclockNano: %d TermTimeS: %d TermTimeNano: %d --Just Exiting--\n",
+    printf("WORKER PID:%d PPID:%d SysClockSec: %d SysclockNano: %d TermTimeS: %d TermTimeNano: %d --Just Exiting--\n",
      me, parent, currentSeconds, currentNano, endSeconds, endNano);
 }
 void format(int* seconds, int* nano){
