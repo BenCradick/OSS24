@@ -9,8 +9,16 @@
 
 void format(int* seconds, int* nano);
 
+//FD is short fore file descriptor
+
+int NanoSecondSharedMemoryFD;
+void* NanoSecondSharedMemoryPointer;
+const int SIZE = sizeof(unsigned long long);
+
 void die(){
     printf("Worker %d has been killed\n", getpid());
+    close(NanoSecondSharedMemoryFD);
+    munmap(NanoSecondSharedMemoryPointer, SIZE);
     exit(1);
 
 }
@@ -20,6 +28,7 @@ int main(int argc,  char* argv[]){
     int nano = atoi(argv[2]);
 
     signal(SIGALRM, (void (*)(int))die);
+    signal(SIGINT, (void (*)(int))die);
 
     const unsigned long long BILLION = 1000000000;
 
@@ -42,15 +51,12 @@ int main(int argc,  char* argv[]){
     
 
 
-    const int SIZE = sizeof(unsigned long long);
+    
     
     const char* NanoSeconds = "NanoSeconds";
 
 
-    //FD is short fore file descriptor
-
-    int NanoSecondSharedMemoryFD;
-    void* NanoSecondSharedMemoryPointer;
+    
 
     
 
@@ -113,6 +119,10 @@ int main(int argc,  char* argv[]){
     }
     printf("WORKER PID:%d PPID:%d SysClockSec: %d SysclockNano: %d TermTimeS: %d TermTimeNano: %d --Just Exiting--\n",
      me, parent, currentSeconds, currentNano, endSeconds, endNano);
+    
+    close(NanoSecondSharedMemoryFD);
+    munmap(NanoSecondSharedMemoryPointer, SIZE);
+    return 0;
 }
 void format(int* seconds, int* nano){
     if(*nano >= 1000000000){

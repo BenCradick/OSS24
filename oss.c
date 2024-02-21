@@ -21,9 +21,17 @@
 #include <stdbool.h>
 
 
-
+#pragma region GlobalVariables
 #define BILLION 1000000000
 #define MILLION 1000000
+
+//global variables needed for killing shared memory via signals.
+//FD is short fore file descriptor
+
+int NanoSecondSharedMemoryFD;
+void* NanoSecondSharedMemoryPointer;
+const char* NanoSeconds = "NanoSeconds";
+const int SIZE = sizeof(unsigned long long);
 
 struct ProcessControlBlock
 {
@@ -32,20 +40,18 @@ struct ProcessControlBlock
     unsigned long long nanoSeconds;    
 };
 struct ProcessControlBlock ProcessTable[20];
+#pragma endregion
 
+#pragma region FunctionPrototypes
+//function prototypes
 void printProcessControlBlock(struct ProcessControlBlock pcb[], int size);
 
-void killChildren(){
-    for(int i = 0; i < 20; i++){
-        if(ProcessTable[i].occupied == 1){
-            kill(ProcessTable[i].pid, SIGKILL);
-        }
-    }
-    exit(0);
-}
+void killChildren();
 
 char* itoa(int num, char* str, int base);
 void reverse(char str[], int length);
+
+#pragma endregion
 
 int main(int argc,  char* argv[]){
     #pragma region Variables
@@ -64,23 +70,20 @@ int main(int argc,  char* argv[]){
     int secMax = 0;
 
     unsigned long long value = 0;
-    unsigned long long increment = 100000;
+    unsigned long long increment = 135;
 
     unsigned long long nextTime = 0;
     unsigned long long nextPrint = BILLION / 2;
     
 
-    const int SIZE = sizeof(unsigned long long);
     
-    const char* NanoSeconds = "NanoSeconds";
+    
+    
 
     char secChar[33];
     char nanoChar[33];
 
-    //FD is short fore file descriptor
-
-    int NanoSecondSharedMemoryFD;
-    void* NanoSecondSharedMemoryPointer;
+    
 
     #pragma endregion
 
@@ -113,6 +116,7 @@ int main(int argc,  char* argv[]){
 
     // set up the alarm
     signal(SIGALRM, (void (*)(int))killChildren);
+    signal(SIGINT, (void (*)(int))killChildren);
     alarm(60);
     #pragma region ArgumentParsing
     while((Opt = getopt(argc, argv, "n:s:t:i:h")) != -1){
@@ -175,48 +179,15 @@ int main(int argc,  char* argv[]){
 
 
     
-
-    // AllChildren is number of chilren run, TotalChildren is the number specified.
-    while(AllChildren < TotalChildren){
+    #pragma region MainLoop
+    
+    do{
         
         
 
-        if(value >= nextPrint){
-            
-            
-            printProcessControlBlock(ProcessTable, 20);
-            
-            while(nextPrint <= value){
-                nextPrint += BILLION / 2;
-            }
-        }
-
-        //check for finished children without hanging
-        ChildExited = waitpid(-1, &status, WNOHANG);
-        if(ChildExited > 0){
-            CurrentChildren--;
-            // for each element in the process table check to see if the pid matches the pid of the child that just exited
-            for(int i = 0; i < 20; i++){
-                if(ProcessTable[i].pid == ChildExited){
-                    ProcessTable[i].occupied = 0;
-                    ProcessTable[i].pid = 0;
-                    ProcessTable[i].nanoSeconds = 0;
-                    break;
-                }
-            }
-        }
+        
 
         
-        
-        // for handling the first iteration of the loop
-        else if (errno == ECHILD && CurrentChildren == 0){
-            errno = 0;
-        }
-        //handles actual errors
-        else if (ChildExited < 0 && errno != ECHILD){
-            printf("Error: Failed to wait for child process\nError: %s\n", strerror(errno));
-            return 1;
-        }
 
         /*
         * Documenting the fork() process return values for future reference
@@ -246,7 +217,7 @@ int main(int argc,  char* argv[]){
             CurrentChildren++;
             AllChildren++;
 
-            printf("sec: %llu, nano: %llu\n", value/BILLION, value %BILLION);
+            printf("CurrentChildren: %d MaxProcess: %d AllChildren: %d TotalChildren: %d\n",  CurrentChildren, MaxProcess, AllChildren, TotalChildren);
 
             //printf("AllChildren: %d CurrentChildren: %d\n", CurrentChildren, AllChildren);
 
@@ -267,42 +238,70 @@ int main(int argc,  char* argv[]){
         
         IsParent = -2;
        
-       if(nextTime <= value){
-           nextTime = value + launchInterval * MILLION;
-       }
+        if(nextTime <= value){
+            nextTime = value + launchInterval * MILLION;
+        }
+    
+        //check for finished children without hanging
+        ChildExited = waitpid(-1, &status, WNOHANG);
+        if(ChildExited > 0){
+            CurrentChildren--;
+            // for each element in the process table check to see if the pid matches the pid of the child that just exited
+            for(int i = 0; i < 20; i++){
+                if(ProcessTable[i].pid == ChildExited){
+                    ProcessTable[i].occupied = 0;
+                    ProcessTable[i].pid = 0;
+                    ProcessTable[i].nanoSeconds = 0;
+                    break;
+                }
+            }
+        }
+
+        
+        
+        // for handling the first iteration of the loop
+        else if (errno == ECHILD && CurrentChildren == 0){
+            errno = 0;
+        }
+        //handles actual errors
+        else if (ChildExited < 0 && errno != ECHILD){
+            printf("Error: Failed to wait for child process\nError: %s\n", strerror(errno));
+            return 1;
+        }
+
+       if(value >= nextPrint){
+            
+            
+            printProcessControlBlock(ProcessTable, 20);
+            
+            while(nextPrint <= value){
+                nextPrint += BILLION / 2;
+            }
+        }
         //nextTime = value + launchInterval * MILLION;
         value += increment;
         memcpy(NanoSecondSharedMemoryPointer, &value, sizeof(value));
 
         
+
         
         
-    }
-    // Waits for all child processes to finish
-    while(CurrentChildren > 0){
-        
-        
-        ChildExited = waitpid(-1, &status, WNOHANG);
-        if(ChildExited < 0){
-            printf("Error: Failed to wait for child process\nError: %s\n", strerror(errno));
-            return 1;
-        }
-        if(ChildExited > 0){
-            CurrentChildren--;
-            
-        }
-        value += increment;
-        memcpy(NanoSecondSharedMemoryPointer, &value, sizeof(value));
-        
-        
-    }
+    // AllChildren is number of chilren run, TotalChildren is the number specified.
+    }while(CurrentChildren > 0);
+    #pragma endregion
+
+    printProcessControlBlock(ProcessTable, 20);
+
+    munmap(NanoSecondSharedMemoryPointer, SIZE);
+    close(NanoSecondSharedMemoryFD);
 
     shm_unlink(NanoSeconds);
+
 
     return 0;
 }
 
-
+#pragma region Functions
 void reverse(char str[], int length)
 {
     int start = 0;
@@ -363,6 +362,27 @@ void printProcessControlBlock(struct ProcessControlBlock table[], int size){
     //attempting to keep the program from seperating lines when printing but its still getting interrupted
     printf("%-17s %-17s %-17s %-17s %-17s\n", "Entry:", "Occupied:", "PID:", "StartSeconds:", "StartNanoSeconds:");
     for (int i = 0; i < size; i++) {
-        printf("%d\t%-17d\t%-17d\t%-17llu\t%-17llu\n", i, table[i].occupied, table[i].pid, table[i].nanoSeconds / BILLION, table[i].nanoSeconds % BILLION);
+        printf("%-17d %-17d %-17d %-17llu %-17llu\n", i, table[i].occupied, table[i].pid, table[i].nanoSeconds / BILLION, table[i].nanoSeconds % BILLION);
     }
 }
+void killChildren(){
+    for(int i = 0; i < 20; i++){
+        if(ProcessTable[i].occupied == 1){
+            kill(ProcessTable[i].pid, SIGKILL);
+        }
+    }
+
+    if(munmap(NanoSecondSharedMemoryPointer, SIZE) == -1){
+        printf("Error: Failed to unmap shared memory\nError: %s\n", strerror(errno));
+        exit(1);
+    }
+    if(close(NanoSecondSharedMemoryFD) == -1){
+        printf("Error: Failed to close shared memory file descriptor\nError: %s\n", strerror(errno));
+        exit(1);
+    }
+
+    shm_unlink(NanoSeconds);
+    
+    exit(0);
+}
+#pragma endregion
