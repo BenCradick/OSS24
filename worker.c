@@ -21,7 +21,7 @@ int main(int argc,  char* argv[]){
 
     signal(SIGALRM, (void (*)(int))die);
 
-    const int BILLION = 1000000000;
+    const unsigned long BILLION = 1000000000;
 
     unsigned long lastTime = 0;
 
@@ -69,7 +69,10 @@ int main(int argc,  char* argv[]){
 
     currentSeconds = (time / BILLION);
     currentNano = (time % BILLION);
+
+    printf("CurrentSeconds: %d, CurrentNano: %d\n", currentSeconds, currentNano);
     format(&currentSeconds, &currentNano);
+    printf("CurrentSeconds: %d, CurrentNano: %d\n", currentSeconds, currentNano);
     startSeconds = currentSeconds;
 
     endSeconds = currentSeconds + seconds;
@@ -87,18 +90,21 @@ int main(int argc,  char* argv[]){
 
         // printf("endTime: %lu, time: %lu diff: %lu\n", endTime, time, endTime - time);
         // void *memcpy(void *dest, const void * src, size_t n)
-        memcpy(&time, NanoSecondSharedMemoryPointer, SIZE);        
+        memcpy(&time, NanoSecondSharedMemoryPointer, SIZE);
+
+               
 
         if(time >= lastTime + 1000000){
             lastTime = time;
 
             currentSeconds = (time / BILLION);
             currentNano = (time % BILLION);
+
+            //printf("CurrentSeconds: %d, CurrentNano: %d\n", currentSeconds, currentNano);
             format(&currentSeconds, &currentNano);
 
-            endSeconds = currentSeconds + seconds;
-            endNano = currentNano + nano;
-            format(&endSeconds, &endNano);
+
+            
             
             printf("WORKER PID:%d PPID:%d SysClockSec: %d SysclockNano: %d TermTimeS: %d TermTimeNano: %d -- %d seconds have passed since starting\n",
                    me, parent, currentSeconds, currentNano, endSeconds, endNano, currentSeconds - startSeconds);

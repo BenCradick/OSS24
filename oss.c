@@ -32,6 +32,8 @@ struct ProcessControlBlock
 };
 struct ProcessControlBlock ProcessTable[20];
 
+void printProcessControlBlock(struct ProcessControlBlock pcb[], int size);
+
 void killChildren(){
     for(int i = 0; i < 20; i++){
         if(ProcessTable[i].occupied == 1){
@@ -45,11 +47,12 @@ char* itoa(int num, char* str, int base);
 void reverse(char str[], int length);
 
 int main(int argc,  char* argv[]){
+    #pragma region Variables
     int Opt;
     int TotalChildren = -1;
     int MaxProcess = -1;
     int MaxRuntime = -1;
-    int launchInterval = 0;
+    int launchInterval = -1;
     pid_t IsParent = -2;
     pid_t ChildExited = -1;
     int CurrentChildren =  0;
@@ -60,9 +63,10 @@ int main(int argc,  char* argv[]){
     int secMax = 0;
 
     unsigned long value = 0;
-    unsigned long increment = 1000000;
+    unsigned long increment = 100000;
 
     unsigned long nextTime = 0;
+    unsigned long nextPrint = BILLION / 2;
     
 
     const int SIZE = 8;
@@ -77,8 +81,10 @@ int main(int argc,  char* argv[]){
     int NanoSecondSharedMemoryFD;
     void* NanoSecondSharedMemoryPointer;
 
-    
+    #pragma endregion
 
+    
+    #pragma region SharedMemory
 
     NanoSecondSharedMemoryFD = shm_open(NanoSeconds, O_CREAT | O_RDWR, 0666);
 
@@ -90,13 +96,26 @@ int main(int argc,  char* argv[]){
 
     NanoSecondSharedMemoryPointer = mmap(0, SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, NanoSecondSharedMemoryFD, 0);
 
+    memcpy(NanoSecondSharedMemoryPointer, &value, SIZE);
+    #pragma endregion
+
+
+
+
+    //initialize the process table
+    for(int i = 0; i < 20; i++){
+                ProcessTable[i].occupied = 0;
+                ProcessTable[i].pid = 0;
+                ProcessTable[i].nanoSeconds = 0;                   
+        }
+
 
     // set up the alarm
     signal(SIGALRM, (void (*)(int))killChildren);
-    //alarm(1);
-
+    alarm(60);
+    #pragma region ArgumentParsing
     while((Opt = getopt(argc, argv, "n:s:t:i:h")) != -1){
-        // opt arguments -n, -s, -t
+        // opt arguments -n, -s, -t -i, -h
         switch(Opt){
             case 'h':
                 printf("./oss [-n proc] [-s simul] [-t timelimitForChildren] [-i intervalInMSToLaunchChildren] [-h]\n");
@@ -116,11 +135,8 @@ int main(int argc,  char* argv[]){
                 break;
             case 't':
                 MaxRuntime = atoi(optarg);
-                secMax = 1;
-                nanoMax = 200000;
-
-                // secMax = MaxRuntime / BILLION;
-                // nanoMax = MaxRuntime % BILLION;                
+                secMax = rand() % MaxRuntime + 1;
+                nanoMax = rand() % BILLION;              
                 break;
             case 'i':
                 launchInterval = atoi(optarg);
@@ -138,6 +154,7 @@ int main(int argc,  char* argv[]){
             printf("proc: number of processes to run\n");
             printf("simul: number of processes to run at a time\n");
             printf("iter: number of iterations for user to run\n");
+            printf("intervalInMsToLaunchChildren: iterval between process launches in ms\n");
 
             if(TotalChildren == -1){
                 TotalChildren = 19;
@@ -148,14 +165,30 @@ int main(int argc,  char* argv[]){
             if(MaxRuntime == -1){
                 MaxRuntime = 7;
             }
+            if(launchInterval == -1){
+                launchInterval = 100;
+            }
             
         }
+    #pragma endregion
 
 
-    memcpy(NanoSecondSharedMemoryPointer, &value, sizeof(value));
+    
+
+    
     // AllChildren is number of chilren run, TotalChildren is the number specified.
     while(AllChildren < TotalChildren){
-        
+
+        if(value >= nextPrint){
+            
+            
+            printProcessControlBlock(ProcessTable, 20);
+            
+            while(nextPrint <= value){
+                nextPrint += BILLION / 2;
+            }
+        }
+
         //check for finished children without hanging
         ChildExited = waitpid(-1, &status, WNOHANG);
         if(ChildExited > 0){
@@ -211,6 +244,8 @@ int main(int argc,  char* argv[]){
             CurrentChildren++;
             AllChildren++;
 
+            printf("sec: %lu, nano: %lu\n", value/BILLION, value %BILLION);
+
             //printf("AllChildren: %d CurrentChildren: %d\n", CurrentChildren, AllChildren);
 
             //add the child to the process table
@@ -237,7 +272,7 @@ int main(int argc,  char* argv[]){
         value += increment;
         memcpy(NanoSecondSharedMemoryPointer, &value, sizeof(value));
 
-        // printf("NanoSeconds: %lu\n", value);
+        
         
         
     }
@@ -317,4 +352,12 @@ char* itoa(int num, char* str, int base)
     reverse(str, i);
  
     return str;
+}
+
+void printProcessControlBlock(struct ProcessControlBlock table[], int size){
+    //attempting to keep the program from seperating lines when printing but its still getting interrupted
+    printf("%-17s %-17s %-17s %-17s %-17s\n", "Entry:", "Occupied:", "PID:", "StartSeconds:", "StartNanoSeconds:");
+    for (int i = 0; i < size; i++) {
+        printf("%d\t%-17d\t%-17d\t%-17lu\t%-17lu\n", i, table[i].occupied, table[i].pid, table[i].nanoSeconds / BILLION, table[i].nanoSeconds % BILLION);
+    }
 }
