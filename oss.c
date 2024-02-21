@@ -21,6 +21,7 @@
 #include <stdbool.h>
 
 
+
 #define BILLION 1000000000
 #define MILLION 1000000
 
@@ -28,7 +29,7 @@ struct ProcessControlBlock
 {
     int occupied;     
     pid_t pid;        
-    unsigned long nanoSeconds;    
+    unsigned long long nanoSeconds;    
 };
 struct ProcessControlBlock ProcessTable[20];
 
@@ -62,14 +63,14 @@ int main(int argc,  char* argv[]){
     int nanoMax = 0;
     int secMax = 0;
 
-    unsigned long value = 0;
-    unsigned long increment = 100000;
+    unsigned long long value = 0;
+    unsigned long long increment = 100000;
 
-    unsigned long nextTime = 0;
-    unsigned long nextPrint = BILLION / 2;
+    unsigned long long nextTime = 0;
+    unsigned long long nextPrint = BILLION / 2;
     
 
-    const int SIZE = 8;
+    const int SIZE = sizeof(unsigned long long);
     
     const char* NanoSeconds = "NanoSeconds";
 
@@ -175,9 +176,10 @@ int main(int argc,  char* argv[]){
 
     
 
-    
     // AllChildren is number of chilren run, TotalChildren is the number specified.
     while(AllChildren < TotalChildren){
+        
+        
 
         if(value >= nextPrint){
             
@@ -228,7 +230,7 @@ int main(int argc,  char* argv[]){
        
 
         // printf statement for the values in the following if statement
-        //printf("CurrentChildren: %d MaxProcess: %d AllChildren: %d TotalChildren: %d NextTime: %lu Value: %lu \n",  CurrentChildren, MaxProcess, AllChildren, TotalChildren, nextTime, value);
+        //printf("CurrentChildren: %d MaxProcess: %d AllChildren: %d TotalChildren: %d NextTime: %llu Value: %llu \n",  CurrentChildren, MaxProcess, AllChildren, TotalChildren, nextTime, value);
         if(CurrentChildren < MaxProcess && AllChildren < TotalChildren && nextTime <= value){
             IsParent = fork();
         }
@@ -244,7 +246,7 @@ int main(int argc,  char* argv[]){
             CurrentChildren++;
             AllChildren++;
 
-            printf("sec: %lu, nano: %lu\n", value/BILLION, value %BILLION);
+            printf("sec: %llu, nano: %llu\n", value/BILLION, value %BILLION);
 
             //printf("AllChildren: %d CurrentChildren: %d\n", CurrentChildren, AllChildren);
 
@@ -278,6 +280,8 @@ int main(int argc,  char* argv[]){
     }
     // Waits for all child processes to finish
     while(CurrentChildren > 0){
+        
+        
         ChildExited = waitpid(-1, &status, WNOHANG);
         if(ChildExited < 0){
             printf("Error: Failed to wait for child process\nError: %s\n", strerror(errno));
@@ -289,7 +293,8 @@ int main(int argc,  char* argv[]){
         }
         value += increment;
         memcpy(NanoSecondSharedMemoryPointer, &value, sizeof(value));
-
+        
+        
     }
 
     shm_unlink(NanoSeconds);
@@ -358,6 +363,6 @@ void printProcessControlBlock(struct ProcessControlBlock table[], int size){
     //attempting to keep the program from seperating lines when printing but its still getting interrupted
     printf("%-17s %-17s %-17s %-17s %-17s\n", "Entry:", "Occupied:", "PID:", "StartSeconds:", "StartNanoSeconds:");
     for (int i = 0; i < size; i++) {
-        printf("%d\t%-17d\t%-17d\t%-17lu\t%-17lu\n", i, table[i].occupied, table[i].pid, table[i].nanoSeconds / BILLION, table[i].nanoSeconds % BILLION);
+        printf("%d\t%-17d\t%-17d\t%-17llu\t%-17llu\n", i, table[i].occupied, table[i].pid, table[i].nanoSeconds / BILLION, table[i].nanoSeconds % BILLION);
     }
 }

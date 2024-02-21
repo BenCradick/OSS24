@@ -21,16 +21,16 @@ int main(int argc,  char* argv[]){
 
     signal(SIGALRM, (void (*)(int))die);
 
-    const unsigned long BILLION = 1000000000;
+    const unsigned long long BILLION = 1000000000;
 
-    unsigned long lastTime = 0;
+    unsigned long long lastTime = 0;
 
     pid_t me = getpid();
     pid_t parent = getppid();
 
 
-    unsigned long  time = 0;
-    unsigned long endTime = 0;
+    unsigned long long  time = 0;
+    unsigned long long endTime = 0;
 
     int endSeconds = 0;
     int endNano = 0;
@@ -42,7 +42,7 @@ int main(int argc,  char* argv[]){
     
 
 
-    const int SIZE = 8;
+    const int SIZE = sizeof(unsigned long long);
     
     const char* NanoSeconds = "NanoSeconds";
 
