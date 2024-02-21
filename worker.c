@@ -76,9 +76,7 @@ int main(int argc,  char* argv[]){
     currentSeconds = (time / BILLION);
     currentNano = (time % BILLION);
 
-    printf("CurrentSeconds: %d, CurrentNano: %d\n", currentSeconds, currentNano);
     format(&currentSeconds, &currentNano);
-    printf("CurrentSeconds: %d, CurrentNano: %d\n", currentSeconds, currentNano);
     startSeconds = currentSeconds;
 
     endSeconds = currentSeconds + seconds;
@@ -100,13 +98,13 @@ int main(int argc,  char* argv[]){
 
                
 
-        if(time >= lastTime + 1000000){
+        if(time >= lastTime + BILLION){
             lastTime = time;
 
             currentSeconds = (time / BILLION);
             currentNano = (time % BILLION);
 
-            //printf("CurrentSeconds: %d, CurrentNano: %d\n", currentSeconds, currentNano);
+            
             format(&currentSeconds, &currentNano);
 
 
@@ -117,7 +115,7 @@ int main(int argc,  char* argv[]){
         }
     
     }
-    printf("WORKER PID:%d PPID:%d SysClockSec: %d SysclockNano: %d TermTimeS: %d TermTimeNano: %d --Just Exiting--\n",
+    printf("WORKER PID:%d PPID:%d SysClockSec: %d SysclockNano: %d TermTimeS: %d TermTimeNano: %d --Terminating\n",
      me, parent, currentSeconds, currentNano, endSeconds, endNano);
     
     close(NanoSecondSharedMemoryFD);

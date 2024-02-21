@@ -200,8 +200,6 @@ int main(int argc,  char* argv[]){
 
        
 
-        // printf statement for the values in the following if statement
-        //printf("CurrentChildren: %d MaxProcess: %d AllChildren: %d TotalChildren: %d NextTime: %llu Value: %llu \n",  CurrentChildren, MaxProcess, AllChildren, TotalChildren, nextTime, value);
         if(CurrentChildren < MaxProcess && AllChildren < TotalChildren && nextTime <= value){
             IsParent = fork();
         }
@@ -216,10 +214,6 @@ int main(int argc,  char* argv[]){
             // keep track of the number of children
             CurrentChildren++;
             AllChildren++;
-
-            printf("CurrentChildren: %d MaxProcess: %d AllChildren: %d TotalChildren: %d\n",  CurrentChildren, MaxProcess, AllChildren, TotalChildren);
-
-            //printf("AllChildren: %d CurrentChildren: %d\n", CurrentChildren, AllChildren);
 
             //add the child to the process table
             for(int i = 0; i < 20; i++){
