@@ -1,8 +1,8 @@
 /*
     Ben Cradick
     CS4760
-    Project 1
-    Due: 02/07/2024    
+    Project 2
+    Due: 02/22/2024    
 */
 
 #include <stdio.h>
