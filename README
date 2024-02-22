@@ -1,6 +1,6 @@
 # OSS24 
 
-## Project 1
+## Project 2
 
 Targeting Ubuntu:focal
 
@@ -11,33 +11,32 @@ Runing project goes as follows:
 #builds project
 make
 
+#removes .o and executables from the directory.
+make clean
+
 #prints help menu
 ./oss -h
 
 # run the program
-./oss -n NumberOfProcesses -s MaxConcurrentChildren -t Iterations
+./oss -n NumberOfProcesses -s MaxConcurrentChildren -t Iterations -i MaxRuntime
 ````
 
-Current configuration will produce a warning that argc isn't used, ignore it.
+Current configuration will produce a warning that argc isn't used, ignore it. It will also produce a warning about my use of #pragma region REGION_NAME and #pragma endregion, They are macros for the text editor I'm using to organize the code into collapsable regions, and won't be picked up by the precompiler. I don't rememember why I used #define BILLION in oss and const unsigned int BILLION in worker, ideally I will move all constants into a .h file at some point in the future.
+
+I left the user .h and .c files in the repository and they are still compiled, but they aren't actually hit by the code, I'm just too lazy to clean them up. Additionally none of the .h files are actually utilized, but they will be whenever I rewrite project 3 in c++.
 
 I will hard cap the number of concurrent children at 20 to be in line with opsys limitations.
 
 
-Otherwise nothing special was done in this project, may implement signalling at later date to clean up potential zombies. You can safely ignore everything in the .github, .devcontainer, and .vscode folders. I will still explain what they do later.
 
-Youtube video of me walking you through the code can be found [here](https://www.youtube.com/watch?v=dQw4w9WgXcQ).
 
-One weird thing to note is that the main process loops starts by calling on line 79 :
-````
-ChildExited = waitpid(-1, &status, WNOHANG);
-````
-which on the first pass, which is expected but the errno needs to be reset. So it is on lines 94-96.
+Otherwise nothing special was done in this project,  You can safely ignore everything in the .github, .devcontainer, and .vscode folders. I will still explain what they do later.
 
-````
-else if (errno == ECHILD && CurrentChildren == 0){
-            errno = 0;
-        }
-````
+Youtube video of me walking you through the code can be found [here](https://www.youtube.com/watch?v=6-1Ue0FFrHY).
+
+I used unsigned long longs for my clock timer, it simplified 
+
+
 
 
 Explanation of weird folders.
@@ -48,10 +47,10 @@ Explanation of weird folders.
 
 .github: I don't know it just added it at somepoint.
 
-It may be easier to see a log of my git commits here: https://github.com/BenCradick/OSS24/tree/Project-1
+It may be easier to see a log of my git commits here: https://github.com/BenCradick/OSS24/tree/Project-2
 
-I developed this accross multiple machines and locatios, and I'm not 100% sure if they all use the same Github account.
+I developed this accross multiple machines and locations, and I'm not 100% sure if they all use the same Github account.
 
 
 ###### BenCradick
-###### February 4 2024
+###### February 22 2024

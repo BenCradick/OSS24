@@ -74,16 +74,10 @@ int main(int argc,  char* argv[]){
 
     unsigned long long nextTime = 0;
     unsigned long long nextPrint = BILLION / 2;
-    
-
-    
-    
-    
+      
 
     char secChar[33];
     char nanoChar[33];
-
-    
 
     #pragma endregion
 
@@ -114,7 +108,7 @@ int main(int argc,  char* argv[]){
         }
 
 
-    // set up the alarm
+    // set up the alarm and signal handling
     signal(SIGALRM, (void (*)(int))killChildren);
     signal(SIGINT, (void (*)(int))killChildren);
     alarm(60);
@@ -126,7 +120,7 @@ int main(int argc,  char* argv[]){
                 printf("./oss [-n proc] [-s simul] [-t timelimitForChildren] [-i intervalInMSToLaunchChildren] [-h]\n");
                 printf("proc: number of processes to run\n");
                 printf("simul: number of processes to run at a time\n");
-                printf("iter: time limit for child\n");
+                printf("iter: Maximum runtime\n");
                 printf("intervalInMsToLaunchChildren: iterval between process launches in ms\n");
                 return 0;
             case 'n':
@@ -158,7 +152,7 @@ int main(int argc,  char* argv[]){
             printf("./oss [-n proc] [-s simul] [-t iter] [-h]\n");
             printf("proc: number of processes to run\n");
             printf("simul: number of processes to run at a time\n");
-            printf("iter: number of iterations for user to run\n");
+            printf("iter: Maximum runtime\n");
             printf("intervalInMsToLaunchChildren: iterval between process launches in ms\n");
 
             if(TotalChildren == -1){
@@ -182,11 +176,6 @@ int main(int argc,  char* argv[]){
     #pragma region MainLoop
     
     do{
-        
-        
-
-        
-
         
 
         /*
@@ -251,12 +240,7 @@ int main(int argc,  char* argv[]){
             }
         }
 
-        
-        
-        // for handling the first iteration of the loop
-        else if (errno == ECHILD && CurrentChildren == 0){
-            errno = 0;
-        }
+
         //handles actual errors
         else if (ChildExited < 0 && errno != ECHILD){
             printf("Error: Failed to wait for child process\nError: %s\n", strerror(errno));
@@ -341,8 +325,9 @@ char* itoa(int num, char* str, int base)
     }
  
     // If number is negative, append '-'
-    if (isNegative)
+    if (isNegative){
         str[i++] = '-';
+    }
  
     str[i] = '\0'; // Append string terminator
  
