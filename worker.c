@@ -122,6 +122,8 @@ int main(int argc,  char* argv[]){
         }
     
     }
+    currentSeconds = (time / BILLION);
+    currentNano = (time % BILLION);
     printf("WORKER PID:%d PPID:%d SysClockSec: %d SysclockNano: %d TermTimeS: %d TermTimeNano: %d --Terminating\n",
      me, parent, currentSeconds, currentNano, endSeconds, endNano);
     
