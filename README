@@ -27,7 +27,7 @@ I left the user .h and .c files in the repository and they are still compiled, b
 
 I will hard cap the number of concurrent children at 20 to be in line with opsys limitations.
 
-
+It prints the process control block one more time after finishing just to show that it indeed empties out when the last child exits.
 
 
 Otherwise nothing special was done in this project,  You can safely ignore everything in the .github, .devcontainer, and .vscode folders. I will still explain what they do later.
