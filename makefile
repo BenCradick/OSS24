@@ -1,18 +1,28 @@
 CC = gcc
+CXX = g++
 CFLAGS = -Wall -Wextra
 
 
-OSS_SRC = oss.c
+OSS_SRC = oss.cpp
 USER_SRC = user.c
-WORKER_SRC = worker.c
+WORKER_SRC = worker.cpp
+PCB_SRC = PCB.cpp
+CLOCK_SRC = clock.cpp
 
 
-OSS_OBJ = $(OSS_SRC:.c=.o)
+OSS_OBJ = $(OSS_SRC:.cpp=.o)
 USER_OBJ = $(USER_SRC:.c=.o)
-WORKER_OBJ = $(WORKER_SRC:.c=.o)
+WORKER_OBJ = $(WORKER_SRC:.cpp=.o)
+PCB_OBJ = $(PCB_SRC:.cpp=.o)
+CLOCK_OBJ = $(CLOCK_SRC:.cpp=.o)
 
 
 USER_HEADERS = user.h
+PCB_HEADERS = PCB.h
+OSS_HEADERS = oss.h
+WORKER_HEADERS = worker.h
+CONSTANTS_HEADERS = constants.h
+CLOCK_HEADERS = clock.h
 
 
 OSS_EXECUTABLE = oss
@@ -23,20 +33,23 @@ WORKER_EXECUTABLE = worker
 all: $(OSS_EXECUTABLE) $(USER_EXECUTABLE) $(WORKER_EXECUTABLE)
 
 
-$(OSS_EXECUTABLE): $(OSS_OBJ)
-	$(CC) $(CFLAGS) -o $@ $^ -lrt
+$(OSS_EXECUTABLE): $(OSS_OBJ) $(PCB_OBJ) $(CLOCK_OBJ) 
+	$(CXX) $(CFLAGS) -o $@ $^ -lrt
 
 
 $(USER_EXECUTABLE): $(USER_OBJ)
 	$(CC) $(CFLAGS) -o $@ $^ -lrt
 
-$(WORKER_EXECUTABLE): $(WORKER_OBJ)
-	$(CC) $(CFLAGS) -o $@ $^ -lrt
+$(WORKER_EXECUTABLE): $(WORKER_OBJ) $(CLOCK_OBJ)
+	$(CXX) $(CFLAGS) -o $@ $^ -lrt
 
 
-%.o: %.c $(OSS_HEADERS) $(USER_HEADERS) $(WORKER_HEADERS)
+%.o: %.c $(OSS_HEADERS) $(USER_HEADERS) $(PCB_HEADERS) $(CONSTANTS_HEADERS) $(CLOCK_HEADERS)
 	$(CC) $(CFLAGS) -c -o $@ $<
+
+%.o: %.cpp $(USER_HEADERS) $(PCB_HEADERS) $(CONSTANTS_HEADERS) $(CLOCK_HEADERS) $(WORKER_HEADERS)
+	$(CXX) $(CFLAGS) -c -o $@ $<
 
 .PHONY: clean
 clean:
-	rm -f $(OSS_OBJ) $(USER_OBJ) $(OSS_EXECUTABLE) $(USER_EXECUTABLE) $(WORKER_OBJ) $(WORKER_EXECUTABLE)
+	rm -f $(OSS_OBJ) $(USER_OBJ) $(OSS_EXECUTABLE) $(USER_EXECUTABLE) $(WORKER_OBJ) $(WORKER_EXECUTABLE) $(PCB_OBJ)

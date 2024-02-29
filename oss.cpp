@@ -20,31 +20,32 @@
 #include <bits/signum-generic.h>
 #include <stdbool.h>
 
+#include "constants.h"
+#include "PCB.h"
+#include "clock.h"
+
 
 #pragma region GlobalVariables
-#define BILLION 1000000000
-#define MILLION 1000000
+
 
 //global variables needed for killing shared memory via signals.
 //FD is short fore file descriptor
 
-int NanoSecondSharedMemoryFD;
-void* NanoSecondSharedMemoryPointer;
-const char* NanoSeconds = "NanoSeconds";
-const int SIZE = sizeof(unsigned long long);
+Clock clock;
+PCB pcb;
 
-struct ProcessControlBlock
-{
-    int occupied;     
-    pid_t pid;        
-    unsigned long long nanoSeconds;    
-};
-struct ProcessControlBlock ProcessTable[20];
+// struct ProcessControlBlock
+// {
+//     int occupied;     
+//     pid_t pid;        
+//     unsigned long long nanoSeconds;    
+// };
+// struct ProcessControlBlock ProcessTable[20];
 #pragma endregion
 
 #pragma region FunctionPrototypes
 //function prototypes
-void printProcessControlBlock(struct ProcessControlBlock pcb[], int size);
+
 
 void killChildren();
 
@@ -79,33 +80,17 @@ int main(int argc,  char* argv[]){
     char secChar[33];
     char nanoChar[33];
 
-    #pragma endregion
+    pcb = PCB();
 
-    
-    #pragma region SharedMemory
+    clock = Clock();
+    clock.init();
 
-    NanoSecondSharedMemoryFD = shm_open(NanoSeconds, O_CREAT | O_RDWR, 0666);
-
-
-    ftruncate(NanoSecondSharedMemoryFD, SIZE);
-
-    
-
-
-    NanoSecondSharedMemoryPointer = mmap(0, SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, NanoSecondSharedMemoryFD, 0);
-
-    memcpy(NanoSecondSharedMemoryPointer, &value, SIZE);
     #pragma endregion
 
 
 
 
-    //initialize the process table
-    for(int i = 0; i < 20; i++){
-                ProcessTable[i].occupied = 0;
-                ProcessTable[i].pid = 0;
-                ProcessTable[i].nanoSeconds = 0;                   
-        }
+    
 
 
     // set up the alarm and signal handling
@@ -205,14 +190,9 @@ int main(int argc,  char* argv[]){
             AllChildren++;
 
             //add the child to the process table
-            for(int i = 0; i < 20; i++){
-                if(ProcessTable[i].occupied == 0){
-                    ProcessTable[i].occupied = 1;
-                    ProcessTable[i].pid = IsParent;
-                    ProcessTable[i].nanoSeconds = value;
-                    break;
-                }
-            }
+
+            pcb.addProcess(IsParent, value);
+
         }
         else if(IsParent == -1){
                 printf("Error: Failed to wait for child process\nError: %s\n", strerror(errno));
@@ -229,15 +209,8 @@ int main(int argc,  char* argv[]){
         ChildExited = waitpid(-1, &status, WNOHANG);
         if(ChildExited > 0){
             CurrentChildren--;
-            // for each element in the process table check to see if the pid matches the pid of the child that just exited
-            for(int i = 0; i < 20; i++){
-                if(ProcessTable[i].pid == ChildExited){
-                    ProcessTable[i].occupied = 0;
-                    ProcessTable[i].pid = 0;
-                    ProcessTable[i].nanoSeconds = 0;
-                    break;
-                }
-            }
+            
+            pcb.removeProcess(ChildExited);
         }
 
 
@@ -250,15 +223,15 @@ int main(int argc,  char* argv[]){
        if(value >= nextPrint){
             
             
-            printProcessControlBlock(ProcessTable, 20);
+            pcb.PrintPCB();
             
             while(nextPrint <= value){
                 nextPrint += BILLION / 2;
             }
         }
         //nextTime = value + launchInterval * MILLION;
-        value += increment;
-        memcpy(NanoSecondSharedMemoryPointer, &value, sizeof(value));
+        clock.incrementClock();
+        value = clock.getTime();
 
         
 
@@ -268,12 +241,8 @@ int main(int argc,  char* argv[]){
     }while(CurrentChildren > 0);
     #pragma endregion
 
-    printProcessControlBlock(ProcessTable, 20);
+    pcb.PrintPCB();
 
-    munmap(NanoSecondSharedMemoryPointer, SIZE);
-    close(NanoSecondSharedMemoryFD);
-
-    shm_unlink(NanoSeconds);
 
 
     return 0;
@@ -337,30 +306,10 @@ char* itoa(int num, char* str, int base)
     return str;
 }
 
-void printProcessControlBlock(struct ProcessControlBlock table[], int size){
-    //attempting to keep the program from seperating lines when printing but its still getting interrupted
-    printf("%-17s %-17s %-17s %-17s %-17s\n", "Entry:", "Occupied:", "PID:", "StartSeconds:", "StartNanoSeconds:");
-    for (int i = 0; i < size; i++) {
-        printf("%-17d %-17d %-17d %-17llu %-17llu\n", i, table[i].occupied, table[i].pid, table[i].nanoSeconds / BILLION, table[i].nanoSeconds % BILLION);
-    }
-}
 void killChildren(){
     for(int i = 0; i < 20; i++){
-        if(ProcessTable[i].occupied == 1){
-            kill(ProcessTable[i].pid, SIGKILL);
-        }
+        kill(pcb.getPCB(i).pid, SIGKILL);
     }
-
-    if(munmap(NanoSecondSharedMemoryPointer, SIZE) == -1){
-        printf("Error: Failed to unmap shared memory\nError: %s\n", strerror(errno));
-        exit(1);
-    }
-    if(close(NanoSecondSharedMemoryFD) == -1){
-        printf("Error: Failed to close shared memory file descriptor\nError: %s\n", strerror(errno));
-        exit(1);
-    }
-
-    shm_unlink(NanoSeconds);
     
     exit(0);
 }

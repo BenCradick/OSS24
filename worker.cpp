@@ -14,18 +14,19 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+#include "clock.h"
+#include "constants.h"
+
 void format(int* seconds, int* nano);
 
 //FD is short fore file descriptor
 
-int NanoSecondSharedMemoryFD;
-void* NanoSecondSharedMemoryPointer;
-const int SIZE = sizeof(unsigned long long);
+Clock clock;
 
 void die(){
+    clock.unmap();
     printf("Worker %d has been killed\n", getpid());
-    close(NanoSecondSharedMemoryFD);
-    munmap(NanoSecondSharedMemoryPointer, SIZE);
     exit(1);
 
 }
@@ -37,7 +38,7 @@ int main(int argc,  char* argv[]){
     signal(SIGALRM, (void (*)(int))die);
     signal(SIGINT, (void (*)(int))die);
 
-    const unsigned long long BILLION = 1000000000;
+
 
     unsigned long long lastTime = 0;
 
@@ -55,64 +56,46 @@ int main(int argc,  char* argv[]){
     int currentNano = 0;
 
     int startSeconds = 0;
+
+    clock = Clock();
     
 
 
     
     
-    const char* NanoSeconds = "NanoSeconds";
-
-
-    
-
     
 
 
-    NanoSecondSharedMemoryFD = shm_open(NanoSeconds, O_CREAT | O_RDWR, 0666);
+    clock.update();
 
+    currentSeconds = clock.getSeconds();
+    currentNano = clock.getNanoSeconds();
 
-    ftruncate(NanoSecondSharedMemoryFD, SIZE);
-
-    
-
-
-    NanoSecondSharedMemoryPointer = mmap(0, SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, NanoSecondSharedMemoryFD, 0);
-
-    memcpy(&time, NanoSecondSharedMemoryPointer, SIZE);
-
-    currentSeconds = (time / BILLION);
-    currentNano = (time % BILLION);
-
-    format(&currentSeconds, &currentNano);
     startSeconds = currentSeconds;
 
     endSeconds = currentSeconds + seconds;
     endNano = currentNano + nano;
-    format(&endSeconds, &endNano);
 
     printf("WORKER PID:%d PPID:%d SysClockSec: %d SysclockNano: %d TermTimeS: %d TermTimeNano: %d --Just Starting--\n",
      me, parent, currentSeconds, currentNano, endSeconds, endNano);
 
-    endTime = (seconds * BILLION) + nano + time;
+    endTime = (seconds * BILLION) + nano + clock.getTime();
     lastTime = time;
 
 
-    while(time < endTime){
+    while(clock.getTime() < endTime){
 
         // printf("endTime: %lu, time: %lu diff: %lu\n", endTime, time, endTime - time);
         // void *memcpy(void *dest, const void * src, size_t n)
-        memcpy(&time, NanoSecondSharedMemoryPointer, SIZE);
+        clock.update();
 
                
 
-        if(time >= lastTime + BILLION){
-            lastTime = time;
+        if(clock.getTime() >= lastTime + BILLION){
+            lastTime = clock.getTime();
 
-            currentSeconds = (time / BILLION);
-            currentNano = (time % BILLION);
-
-            
-            format(&currentSeconds, &currentNano);
+            currentSeconds = clock.getSeconds();
+            currentNano = clock.getNanoSeconds();
 
 
             
@@ -122,18 +105,13 @@ int main(int argc,  char* argv[]){
         }
     
     }
-    currentSeconds = (time / BILLION);
-    currentNano = (time % BILLION);
+    clock.update();
+    currentSeconds = clock.getSeconds();
+    currentNano = clock.getNanoSeconds();
+
     printf("WORKER PID:%d PPID:%d SysClockSec: %d SysclockNano: %d TermTimeS: %d TermTimeNano: %d --Terminating\n",
      me, parent, currentSeconds, currentNano, endSeconds, endNano);
     
-    close(NanoSecondSharedMemoryFD);
-    munmap(NanoSecondSharedMemoryPointer, SIZE);
+    clock.unmap();
     return 0;
-}
-void format(int* seconds, int* nano){
-    if(*nano >= 1000000000){
-        *seconds += 1;
-        *nano -= 1000000000;
-    }
 }
