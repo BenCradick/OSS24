@@ -19,10 +19,13 @@
 #include <signal.h>
 #include <bits/signum-generic.h>
 #include <stdbool.h>
+#include <fstream>
+#include <iostream>
 
 #include "constants.h"
 #include "PCB.h"
 #include "clock.h"
+
 
 
 #pragma region GlobalVariables
@@ -75,6 +78,8 @@ int main(int argc,  char* argv[]){
 
     unsigned long long nextTime = 0;
     unsigned long long nextPrint = BILLION / 2;
+
+    std::ofstream logFile;
       
 
     char secChar[33];
