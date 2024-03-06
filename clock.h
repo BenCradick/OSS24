@@ -11,6 +11,7 @@ class Clock
         unsigned long long  getTime();
         int getSeconds();
         unsigned long long getNanoSeconds();
+        void setIncrement(int CurrentChildren);
         void unlink();
         void unmap();
         void update();
@@ -23,5 +24,7 @@ class Clock
         const char* NanoSeconds = "NanoSeconds";
 
         unsigned long long time;
+
+        unsigned long increment;
 };
 #endif

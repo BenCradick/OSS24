@@ -25,6 +25,7 @@
 #include "constants.h"
 #include "PCB.h"
 #include "clock.h"
+#include "message.h"
 
 
 
@@ -36,6 +37,7 @@
 
 Clock clock;
 PCB pcb;
+Message messageQueue;
 
 // struct ProcessControlBlock
 // {
@@ -73,6 +75,8 @@ int main(int argc,  char* argv[]){
     int nanoMax = 0;
     int secMax = 0;
 
+    std::string logFileName = "log.txt";
+
     unsigned long long value = 0;
     unsigned long long increment = 135;
 
@@ -90,6 +94,8 @@ int main(int argc,  char* argv[]){
     clock = Clock();
     clock.init();
 
+    messageQueue = Message();
+
     #pragma endregion
 
 
@@ -103,7 +109,7 @@ int main(int argc,  char* argv[]){
     signal(SIGINT, (void (*)(int))killChildren);
     alarm(60);
     #pragma region ArgumentParsing
-    while((Opt = getopt(argc, argv, "n:s:t:i:h")) != -1){
+    while((Opt = getopt(argc, argv, "n:s:t:i:f:h")) != -1){
         // opt arguments -n, -s, -t -i, -h
         switch(Opt){
             case 'h':
@@ -130,6 +136,10 @@ int main(int argc,  char* argv[]){
             case 'i':
                 launchInterval = atoi(optarg);
                 break;
+            case 'f':
+                logFileName = optarg;
+                logFile.open(optarg);
+                break;
             default:
                 printf("Option ?\n");
                 break;
@@ -144,6 +154,7 @@ int main(int argc,  char* argv[]){
             printf("simul: number of processes to run at a time\n");
             printf("iter: Maximum runtime\n");
             printf("intervalInMsToLaunchChildren: iterval between process launches in ms\n");
+            printf("logFile: name of the log file\n");
 
             if(TotalChildren == -1){
                 TotalChildren = 19;

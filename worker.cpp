@@ -17,12 +17,14 @@
 
 #include "clock.h"
 #include "constants.h"
+#include "message.h"
 
-void format(int* seconds, int* nano);
+
 
 //FD is short fore file descriptor
 
 Clock clock;
+Message messageQueue;
 
 void die(){
     clock.unmap();
@@ -39,8 +41,7 @@ int main(int argc,  char* argv[]){
     signal(SIGINT, (void (*)(int))die);
 
 
-
-    unsigned long long lastTime = 0;
+    bool terminate = false;
 
     pid_t me = getpid();
     pid_t parent = getppid();
@@ -55,62 +56,57 @@ int main(int argc,  char* argv[]){
     int currentSeconds = 0;
     int currentNano = 0;
 
-    int startSeconds = 0;
+    int iterations = 0;
+
+    char message = '0';
 
     clock = Clock();
-    
+    messageQueue = Message();
 
+    do {
 
-    
-    
-    
+        messageQueue.getMessage(me);
 
-
-    clock.update();
-
-    currentSeconds = clock.getSeconds();
-    currentNano = clock.getNanoSeconds();
-
-    startSeconds = currentSeconds;
-
-    endSeconds = currentSeconds + seconds;
-    endNano = currentNano + nano;
-
-    printf("WORKER PID:%d PPID:%d SysClockSec: %d SysclockNano: %d TermTimeS: %d TermTimeNano: %d --Just Starting--\n",
-     me, parent, currentSeconds, currentNano, endSeconds, endNano);
-
-    endTime = (seconds * BILLION) + nano + clock.getTime();
-    lastTime = time;
-
-
-    while(clock.getTime() < endTime){
-
-        // printf("endTime: %lu, time: %lu diff: %lu\n", endTime, time, endTime - time);
-        // void *memcpy(void *dest, const void * src, size_t n)
         clock.update();
 
-               
+        
+        if(endTime == 0){
+            endTime = clock.getTime() + (seconds * BILLION) + nano;
+            endSeconds = clock.getSeconds() + seconds;
+            endNano = clock.getNanoSeconds() + nano;
 
-        if(clock.getTime() >= lastTime + BILLION){
-            lastTime = clock.getTime();
+            printf("WORKER PID:%d PPID:%d SysClockSec: %d SysclockNano: %d TermTimeS: %d TermTimeNano: %d --Just Starting--\n",
+            me, parent, currentSeconds, currentNano, endSeconds, endNano);
 
-            currentSeconds = clock.getSeconds();
-            currentNano = clock.getNanoSeconds();
-
-
-            
-            
-            printf("WORKER PID:%d PPID:%d SysClockSec: %d SysclockNano: %d TermTimeS: %d TermTimeNano: %d -- %d seconds have passed since starting\n",
-                   me, parent, currentSeconds, currentNano, endSeconds, endNano, currentSeconds - startSeconds);
         }
+        
+        currentSeconds = clock.getSeconds();
+        currentNano = clock.getNanoSeconds();
+        
+        
+        
+        time = clock.getTime();
+
+        if(time >= endTime){
+            terminate = true;
+            message = '1';
+        }
+
+        messageQueue.sendMessage(me, &message);
+        iterations++;
+        printf("WORKER PID:%d PPID:%d SysClockSec: %d SysclockNano: %d TermTimeS: %d TermTimeNano: %d -- %d iterations have passed since starting\n",
+                me, parent, currentSeconds, currentNano, endSeconds, endNano, iterations);
+        
     
-    }
+    }while(!terminate);
+
+
     clock.update();
     currentSeconds = clock.getSeconds();
     currentNano = clock.getNanoSeconds();
 
-    printf("WORKER PID:%d PPID:%d SysClockSec: %d SysclockNano: %d TermTimeS: %d TermTimeNano: %d --Terminating\n",
-     me, parent, currentSeconds, currentNano, endSeconds, endNano);
+    printf("WORKER PID:%d PPID:%d SysClockSec: %d SysclockNano: %d TermTimeS: %d TermTimeNano: %d --Terminating after sending message back to oos after %d iterations\n",
+     me, parent, currentSeconds, currentNano, endSeconds, endNano, iterations);
     
     clock.unmap();
     return 0;

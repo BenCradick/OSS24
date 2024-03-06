@@ -20,7 +20,7 @@ void Clock::init(){
 }
 
 void Clock::incrementClock(){
-    time += 135;
+    time += increment;
     memcpy(NanoSecondSharedMemoryPointer, &time, sizeof(unsigned long long));
 }
 unsigned long long Clock::getTime(){
@@ -45,4 +45,7 @@ void Clock::unmap(){
 
 void Clock::update(){
     memcpy(&time, NanoSecondSharedMemoryPointer, sizeof(unsigned long long));
+}
+void Clock::setIncrement(int CurrentChildren){
+    increment = 250000000 / CurrentChildren;
 }
