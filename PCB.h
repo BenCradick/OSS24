@@ -25,11 +25,18 @@ class PCB
         int removeProcess(pid_t pid);
         int getNumProcesses();
 
+        void nextProcess();
+
+
         ProcessControlBlock getPCB(int i);
+        ProcessControlBlock getCurrentPCB();
         
     private:
         ProcessControlBlock pcb[20]; 
         int count;
+        int currentProcess;
+
+
 
 };
 

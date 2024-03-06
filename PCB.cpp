@@ -5,6 +5,7 @@
 PCB::PCB()
 {
     count = 0;
+    currentProcess = 0;
     for(int i = 0; i < 20; i++)
     {
         pcb[i].occupied = 0;
@@ -25,6 +26,21 @@ void PCB::PrintPCB()
         printf("%-17d %-17d %-17d %-17llu %-17llu\n", i, pcb[i].occupied, pcb[i].pid, pcb[i].nanoSeconds / BILLION, pcb[i].nanoSeconds % BILLION);
     }
 }
+void PCB::nextProcess()
+{
+    while(pcb[currentProcess].occupied == 0){
+        if(currentProcess < 19)
+        {
+            currentProcess++;
+        }
+        else
+        {
+            currentProcess = 0;
+        }
+    }
+}
+
+
 
 int PCB::addProcess(pid_t pid, unsigned long long nanoSeconds)
 {
@@ -69,4 +85,8 @@ int PCB::getNumProcesses()
 ProcessControlBlock PCB::getPCB(int i)
 {
     return pcb[i];
+}
+ProcessControlBlock PCB::getCurrentPCB()
+{
+    return pcb[currentProcess];
 }

@@ -94,7 +94,7 @@ int main(int argc,  char* argv[]){
     clock = Clock();
     clock.init();
 
-    messageQueue = Message();
+    messageQueue = Message(messageTypes::PARENT);
 
     #pragma endregion
 

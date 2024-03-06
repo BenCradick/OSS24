@@ -18,6 +18,7 @@ Message::~Message(){
 void Message::sendMessage(int pid, const char* message){
     struct msgbuf buf;
     buf.mtype = sends;
+    buf.pid = pid;
 
 
     //apparently is bad practice to just use the pid as the key
@@ -31,7 +32,7 @@ void Message::sendMessage(int pid, const char* message){
     msgsnd(msgId, &buf, sizeof(buf.mtext), 0);
 }
 
-const char* Message::getMessage(int pid){
+const char* Message::getMessage(int pid, int flags){
     struct msgbuf buf;
     buf.mtype = recieves;
 

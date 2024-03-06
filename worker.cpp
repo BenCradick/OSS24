@@ -61,11 +61,11 @@ int main(int argc,  char* argv[]){
     char message = '0';
 
     clock = Clock();
-    messageQueue = Message();
+    messageQueue = Message(messageTypes::CHILD);
 
     do {
 
-        messageQueue.getMessage(me);
+        messageQueue.getMessage(me, 0);
 
         clock.update();
 
