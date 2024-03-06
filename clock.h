@@ -21,7 +21,6 @@ class Clock
     private:
         int NanoSecondSharedMemoryFD;
         void* NanoSecondSharedMemoryPointer;
-        const char* NanoSeconds = "NanoSeconds";
 
         unsigned long long time;
 

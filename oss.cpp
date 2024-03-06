@@ -21,6 +21,7 @@
 #include <stdbool.h>
 #include <fstream>
 #include <iostream>
+#include <sys/ipc.h>
 
 #include "constants.h"
 #include "PCB.h"
@@ -35,7 +36,7 @@
 //global variables needed for killing shared memory via signals.
 //FD is short fore file descriptor
 
-Clock clock;
+Clock sysClock;
 PCB pcb;
 Message messageQueue;
 
@@ -91,10 +92,11 @@ int main(int argc,  char* argv[]){
 
     pcb = PCB();
 
-    clock = Clock();
-    clock.init();
+    sysClock = Clock();
+    sysClock.init();
 
     messageQueue = Message(messageTypes::PARENT);
+    messageBuffer message;
 
     #pragma endregion
 
@@ -177,7 +179,9 @@ int main(int argc,  char* argv[]){
     #pragma region MainLoop
     
     do{
-        
+        sysClock.setIncrement(CurrentChildren);
+        sysClock.incrementClock();
+        value = sysClock.getTime();
 
         /*
         * Documenting the fork() process return values for future reference
@@ -223,19 +227,24 @@ int main(int argc,  char* argv[]){
     
         //check for finished children without hanging
         
-        ChildExited = waitpid(-1, &status, WNOHANG);
-        if(ChildExited > 0){
+
+        messageQueue.sendMessage(pcb.getCurrentPCB().pid, "0");
+        message = messageQueue.getMessage(pcb.getCurrentPCB().pid, IPC_NOWAIT);
+
+
+
+        if(message.pid > 0 && message.mtext[0] == '1'){
             CurrentChildren--;
             
-            pcb.removeProcess(ChildExited);
+            pcb.removeProcess(message.pid);
+            message.pid = -1;
         }
-
-
         //handles actual errors
-        else if (ChildExited < 0 && errno != ECHILD){
+        else if (message.pid < 0 && errno != ENOMSG){
             printf("Error: Failed to wait for child process\nError: %s\n", strerror(errno));
             return 1;
         }
+        pcb.nextProcess();
 
        if(value >= nextPrint){
             
@@ -247,8 +256,7 @@ int main(int argc,  char* argv[]){
             }
         }
         //nextTime = value + launchInterval * MILLION;
-        clock.incrementClock();
-        value = clock.getTime();
+        
 
         
 

@@ -13,6 +13,7 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
+#include <iostream>
 
 
 #include "clock.h"
@@ -23,18 +24,18 @@
 
 //FD is short fore file descriptor
 
-Clock clock;
+Clock sysClock;
 Message messageQueue;
 
 void die(){
-    clock.unmap();
+    sysClock.unmap();
     printf("Worker %d has been killed\n", getpid());
     exit(1);
 
 }
 
 int main(int argc,  char* argv[]){
-    int seconds = atoi(argv[1]);
+    unsigned long long seconds = atoi(argv[1]);
     int nano = atoi(argv[2]);
 
     signal(SIGALRM, (void (*)(int))die);
@@ -60,32 +61,36 @@ int main(int argc,  char* argv[]){
 
     char message = '0';
 
-    clock = Clock();
+    sysClock = Clock();
     messageQueue = Message(messageTypes::CHILD);
 
     do {
 
         messageQueue.getMessage(me, 0);
 
-        clock.update();
+        sysClock.update();
 
         
         if(endTime == 0){
-            endTime = clock.getTime() + (seconds * BILLION) + nano;
-            endSeconds = clock.getSeconds() + seconds;
-            endNano = clock.getNanoSeconds() + nano;
+            unsigned long long temp = sysClock.getTime();
+            endTime = temp + (seconds * BILLION) + nano;
+
+            endSeconds = sysClock.getSeconds() + seconds;
+            endNano = sysClock.getNanoSeconds() + nano;
 
             printf("WORKER PID:%d PPID:%d SysClockSec: %d SysclockNano: %d TermTimeS: %d TermTimeNano: %d --Just Starting--\n",
             me, parent, currentSeconds, currentNano, endSeconds, endNano);
 
         }
         
-        currentSeconds = clock.getSeconds();
-        currentNano = clock.getNanoSeconds();
         
         
         
-        time = clock.getTime();
+        
+        time = sysClock.getTime();
+
+        currentSeconds = sysClock.getSeconds();
+        currentNano = sysClock.getNanoSeconds();
 
         if(time >= endTime){
             terminate = true;
@@ -101,13 +106,13 @@ int main(int argc,  char* argv[]){
     }while(!terminate);
 
 
-    clock.update();
-    currentSeconds = clock.getSeconds();
-    currentNano = clock.getNanoSeconds();
+    sysClock.update();
+    currentSeconds = sysClock.getSeconds();
+    currentNano = sysClock.getNanoSeconds();
 
     printf("WORKER PID:%d PPID:%d SysClockSec: %d SysclockNano: %d TermTimeS: %d TermTimeNano: %d --Terminating after sending message back to oos after %d iterations\n",
      me, parent, currentSeconds, currentNano, endSeconds, endNano, iterations);
     
-    clock.unmap();
+    sysClock.unmap();
     return 0;
 }

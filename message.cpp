@@ -3,6 +3,7 @@
 #include <sys/msg.h>
 #include <stdio.h>
 #include <string.h>
+#include <iostream>
 
 #include "message.h"
 #include <string>
@@ -11,12 +12,12 @@ Message::Message(messageTypes type){
     this->sends = type;
     this->recieves = opposite(type);
 }
-
+Message::Message(){};
 Message::~Message(){
 }
 
-void Message::sendMessage(int pid, const char* message){
-    struct msgbuf buf;
+void Message::sendMessage(pid_t pid, const char* message){
+    struct messageBuffer buf;
     buf.mtype = sends;
     buf.pid = pid;
 
@@ -30,11 +31,13 @@ void Message::sendMessage(int pid, const char* message){
     int msgId = msgget(key, 0666 | IPC_CREAT);
     strcpy(buf.mtext, message);
     msgsnd(msgId, &buf, sizeof(buf.mtext), 0);
+    std::cout << "Message sent: " << buf.mtext[0] <<  " type: "<< buf.mtype <<  " pid:" << buf.pid << std::endl;
 }
 
-const char* Message::getMessage(int pid, int flags){
-    struct msgbuf buf;
+messageBuffer Message::getMessage(pid_t pid, int flags){
+    struct messageBuffer buf;
     buf.mtype = recieves;
+    buf.pid = pid;
 
     std::string pidStr = std::to_string(pid);
     const char* pidChar = pidStr.c_str();
@@ -45,9 +48,10 @@ const char* Message::getMessage(int pid, int flags){
     char char_message[100];
 
     int msgId = msgget(key, 0666 | IPC_CREAT);
-    msgrcv(msgId, &buf, sizeof(buf.mtext), 1, 0);
-    strcpy(char_message, buf.mtext);
-    return char_message;
+    msgrcv(msgId, &buf, sizeof(buf.mtext), recieves, 0);
+    std::cout << "Message recieved: " << buf.mtext[0] <<  " type: "<< buf.mtype <<  " pid:" << buf.pid << std::endl;
+    
+    return buf;
 }
 
 messageTypes Message::opposite(messageTypes type){

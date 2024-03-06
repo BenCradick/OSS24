@@ -47,5 +47,12 @@ void Clock::update(){
     memcpy(&time, NanoSecondSharedMemoryPointer, sizeof(unsigned long long));
 }
 void Clock::setIncrement(int CurrentChildren){
-    increment = 250000000 / CurrentChildren;
+    if(CurrentChildren == 0)
+    {
+        increment = 250000000;
+    }
+    else
+    {
+        increment = 250000000 / CurrentChildren;
+    }
 }

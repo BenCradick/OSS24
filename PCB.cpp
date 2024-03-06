@@ -28,7 +28,7 @@ void PCB::PrintPCB()
 }
 void PCB::nextProcess()
 {
-    while(pcb[currentProcess].occupied == 0){
+    while(pcb[currentProcess].occupied == 0 && count > 0){
         if(currentProcess < 19)
         {
             currentProcess++;

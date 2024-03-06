@@ -1,9 +1,13 @@
+#ifndef MESSAGE_H
+#define MESSAGE_H
+
+#include <unistd.h>
 
 enum {
-    PARENT = 0,
-    CHILD = 1
-}typedef messageTypes;
-struct msgbuf
+    PARENT = 1,
+    CHILD = 2
+} typedef messageTypes;
+struct messageBuffer // Add 'struct' keyword here
 {
     long mtype;
     char mtext[100];
@@ -14,9 +18,10 @@ class Message
 {
     public:
         Message(messageTypes type);
+        Message();
         ~Message();
-        void sendMessage(int pid, const char* message);
-        const char* getMessage(int pid, int flags);
+        void sendMessage(pid_t pid, const char* message);
+        messageBuffer getMessage(pid_t pid, int flags);
         
     private:
         
@@ -25,3 +30,4 @@ class Message
 
         messageTypes opposite(messageTypes type);
 };
+#endif
