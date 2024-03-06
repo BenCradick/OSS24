@@ -222,6 +222,7 @@ int main(int argc,  char* argv[]){
         }
     
         //check for finished children without hanging
+        
         ChildExited = waitpid(-1, &status, WNOHANG);
         if(ChildExited > 0){
             CurrentChildren--;
