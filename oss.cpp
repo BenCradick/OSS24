@@ -1,8 +1,8 @@
 /*
     Ben Cradick
     CS4760
-    Project 2
-    Due: 02/22/2024    
+    Project 3
+    Due: 03-07-2024 
 */
 
 #include <stdio.h>
@@ -42,13 +42,7 @@ PCB pcb;
 Message messageQueue;
 std::ofstream logFile;
 
-// struct ProcessControlBlock
-// {
-//     int occupied;     
-//     pid_t pid;        
-//     unsigned long long nanoSeconds;    
-// };
-// struct ProcessControlBlock ProcessTable[20];
+
 #pragma endregion
 
 #pragma region FunctionPrototypes

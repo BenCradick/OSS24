@@ -1,3 +1,10 @@
+/*
+    Ben Cradick
+    CS4760
+    Project 3
+    Due: 03-07-2024 
+*/
+
 #include "PCB.h"
 #include "constants.h"
 #include "logger.h"
@@ -15,7 +22,6 @@ PCB::PCB()
         pcb[i].pid = 0;
         pcb[i].nanoSeconds = 0;
     }
-    first = true;
 }
 
 PCB::~PCB()

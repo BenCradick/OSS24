@@ -1,3 +1,11 @@
+/*
+    Ben Cradick
+    CS4760
+    Project 3
+    Due: 03-07-2024 
+*/
+
+
 #include <unistd.h>
 #ifndef PCB_H
 #define PCB_H
@@ -37,7 +45,6 @@ class PCB
         ProcessControlBlock pcb[20]; 
         int count;
         int currentProcess;
-        bool first;
 
 
 

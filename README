@@ -1,0 +1,66 @@
+# OSS24 
+
+## Project 3
+
+Targeting Ubuntu:focal
+
+
+Runing project goes as follows:
+````
+
+#builds project
+make
+
+#removes .o and executables from the directory.
+make clean
+
+#prints help menu
+./oss -h
+
+# run the program
+# leaving off LofFileName will default to log.txt
+./oss -n NumberOfProcesses -s MaxConcurrentChildren -t Iterations -i MaxRuntime -f LogFileName
+````
+
+Current configuration will produce a warning that it isn't ISO complient, ignore it.  I moved all truly global variables in to constants.h.
+
+I left the user .h and .c files in the repository and they are still compiled, but they aren't actually hit by the code, I'm just too lazy to clean them up. 
+
+Makefile no longers wastes time compiler user.
+
+I will hard cap the number of concurrent children at 20 to be in line with opsys limitations.
+
+It prints the process control block one more time after finishing just to show that it indeed empties out when the last child exits.
+
+## NEW WEIRDNESS
+
+I overloaded the << operator so that it hits a function that writes to both the log file nad the console. Any file that #include "logger.h" will have this behavior. Additionally I utilized a static list for keeping track of message queue Ids so that cleanup was easier.
+
+I rewrote the project in C++ and moved any functionality that needed to be reused into classes. This includes clock, message, and the Process Control Block functions. I extended the POSIX message queue functionality so its more human readable, but its just a very thin wrapper.
+
+Otherwise nothing special was done in this project,  You can safely ignore everything in the .github, .devcontainer, and .vscode folders. I will still explain what they do later.
+
+I used unsigned long longs for my clock timer, it simplified development in some ways and ended up being a pain later when cpp didn't just naturally convert ints to it.
+
+Youtube video of me walking you through the code can be found [here](https://youtu.be/0MUsVcYhERY?si=WfNLbTm5yjgTjVAf).
+
+
+
+
+
+
+Explanation of weird folders.
+
+.vscode folder: Contains instructions for the [VSCode](https://code.visualstudio.com/) editor to use for building and running project. Ultimately I did everythign from the command line as this wasn't quite complicated enough for me to bust out GDB.
+
+.devcontainer folder: Folder that contains image instructions for the VSCode extension [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) there is a more in depth explanation [here](https://code.visualstudio.com/docs/devcontainers/containers) but its basically instructions for VSCode to spin up a [Docker](https://www.docker.com/) container then SSH into it, then pretend as if the entire editor is sitting inside the container. I'm developing across 3 machines and wanted a consistend development environment that was also identical to opsys. So containers.
+
+.github: I don't know it just added it at somepoint.
+
+It may be easier to see a log of my git commits here: https://github.com/BenCradick/OSS24/tree/Project-3
+
+I developed this accross multiple machines and locations, and I'm not 100% sure if they all use the same Github account.
+
+
+###### BenCradick
+###### March 7 2024
