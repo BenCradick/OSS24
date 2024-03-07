@@ -1,6 +1,8 @@
 #include "PCB.h"
 #include "constants.h"
 #include <stdio.h>
+#include <iostream>
+#include <iomanip>
 
 PCB::PCB()
 {
@@ -20,11 +22,20 @@ PCB::~PCB()
 
 void PCB::PrintPCB()
 {
-    printf("%-17s %-17s %-17s %-17s %-17s\n", "Entry:", "Occupied:", "PID:", "StartSeconds:", "StartNanoSeconds:");
-    for(int i = 0; i < 20; i++)
-    {
-        printf("%-17d %-17d %-17d %-17llu %-17llu\n", i, pcb[i].occupied, pcb[i].pid, pcb[i].nanoSeconds / BILLION, pcb[i].nanoSeconds % BILLION);
-    }
+    std::cout << std::left << std::setw(17) << "Entry:" 
+          << std::setw(17) << "Occupied:" 
+          << std::setw(17) << "PID:" 
+          << std::setw(17) << "StartSeconds:" 
+          << std::setw(17) << "StartNanoSeconds:" << std::endl;
+
+for(int i = 0; i < 20; i++)
+{
+    std::cout << std::left << std::setw(17) << i 
+              << std::setw(17) << pcb[i].occupied 
+              << std::setw(17) << pcb[i].pid 
+              << std::setw(17) << pcb[i].nanoSeconds / BILLION 
+              << std::setw(17) << pcb[i].nanoSeconds % BILLION << std::endl;
+}
 }
 void PCB::nextProcess()
 {
