@@ -263,7 +263,7 @@ int main(int argc,  char* argv[]){
                         << pcb.getProccessIndex(message.pid)
                         << " PID: "
                         << message.pid
-                        << "is planning to terminate."
+                        << " is planning to terminate."
                         << std::endl;
             
             pcb.removeProcess(message.pid);
