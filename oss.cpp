@@ -253,10 +253,7 @@ int main(int argc,  char* argv[]){
                     << sysClock.getSeconds()
                     << " Nano: "  
                     << sysClock.getNanoSeconds()
-                    << std::endl;
-        logger() << pcb.getCurrentProcess() << std::endl;            
-        ;
-        logger() << pcb.getCurrentProcess() << std::endl;  
+                    << std::endl; 
         pcb.nextProcess();
 
         if(message.pid > 0 && message.mtext[0] == '1'){
