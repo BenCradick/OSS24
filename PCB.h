@@ -30,11 +30,14 @@ class PCB
 
         ProcessControlBlock getPCB(int i);
         ProcessControlBlock getCurrentPCB();
+        int getCurrentProcess();
+        int getProccessIndex(pid_t pid);
         
     private:
         ProcessControlBlock pcb[20]; 
         int count;
         int currentProcess;
+        bool first;
 
 
 

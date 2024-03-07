@@ -27,6 +27,7 @@
 #include "PCB.h"
 #include "clock.h"
 #include "message.h"
+#include "logger.h"
 
 
 
@@ -39,6 +40,7 @@
 Clock sysClock;
 PCB pcb;
 Message messageQueue;
+std::ofstream logFile;
 
 // struct ProcessControlBlock
 // {
@@ -84,7 +86,7 @@ int main(int argc,  char* argv[]){
     unsigned long long nextTime = 0;
     unsigned long long nextPrint = BILLION / 2;
 
-    std::ofstream logFile;
+    
       
 
     char secChar[33];
@@ -97,6 +99,8 @@ int main(int argc,  char* argv[]){
 
     messageQueue = Message(messageTypes::PARENT);
     messageBuffer message;
+
+    
 
     #pragma endregion
 
@@ -140,7 +144,7 @@ int main(int argc,  char* argv[]){
                 break;
             case 'f':
                 logFileName = optarg;
-                logFile.open(optarg);
+                logFile.open(logFileName);
                 break;
             default:
                 printf("Option ?\n");
@@ -169,6 +173,9 @@ int main(int argc,  char* argv[]){
             }
             if(launchInterval == -1){
                 launchInterval = 100;
+            }
+            if(logFileName == "log.txt"){
+                logFile.open(logFileName);
             }
             
         }
@@ -201,7 +208,7 @@ int main(int argc,  char* argv[]){
         if(IsParent == 0){
             char *args[] = {"./worker", itoa(secMax, secChar, 10), itoa(nanoMax, nanoChar, 10), NULL};
             execvp(args[0], args);
-            printf("Error: Failed to launch child process\n");
+            logger() << "Error: Failed to launch child process" << std::endl;
             exit(EXIT_FAILURE);
         }
         else if (IsParent > 0){
@@ -212,10 +219,11 @@ int main(int argc,  char* argv[]){
             //add the child to the process table
 
             pcb.addProcess(IsParent, value);
+            pcb.nextProcess();
 
         }
         else if(IsParent == -1){
-                printf("Error: Failed to wait for child process\nError: %s\n", strerror(errno));
+                logger() << "Error: Failed to wait for child process\nError: " << strerror(errno) << std::endl;
                 return 1;
             }
         
@@ -225,26 +233,58 @@ int main(int argc,  char* argv[]){
             nextTime = value + launchInterval * MILLION;
         }
     
-        //check for finished children without hanging
         
 
         messageQueue.sendMessage(pcb.getCurrentPCB().pid, "0");
+
+        //logging that message was sent to worker.
+        logger() << "OSS: Sending message to worker " 
+                    << pcb.getCurrentProcess() 
+                    << " PID: " 
+                    << pcb.getCurrentPCB().pid
+                    << " at time Sec:"
+                    << sysClock.getSeconds()
+                    << " Nano: "  
+                    << sysClock.getNanoSeconds()
+                    << std::endl;
+
         message = messageQueue.getMessage(pcb.getCurrentPCB().pid, IPC_NOWAIT);
 
-
+        //logging that message was received from worker.
+        logger() << "OSS: Received message from worker " 
+                    << pcb.getProccessIndex(message.pid)
+                    << " PID: " 
+                    << message.pid
+                    << " at time Sec:"
+                    << sysClock.getSeconds()
+                    << " Nano: "  
+                    << sysClock.getNanoSeconds()
+                    << std::endl;
+        logger() << pcb.getCurrentProcess() << std::endl;            
+        ;
+        logger() << pcb.getCurrentProcess() << std::endl;  
+        pcb.nextProcess();
 
         if(message.pid > 0 && message.mtext[0] == '1'){
             CurrentChildren--;
+
+            logger() << "OSS: Worker "
+                        << pcb.getProccessIndex(message.pid)
+                        << " PID: "
+                        << message.pid
+                        << "is planning to terminate."
+                        << std::endl;
             
             pcb.removeProcess(message.pid);
             message.pid = -1;
         }
         //handles actual errors
         else if (message.pid < 0 && errno != ENOMSG){
-            printf("Error: Failed to wait for child process\nError: %s\n", strerror(errno));
+            logger() << "Error: Failed to wait for child process\nError: " <<  strerror(errno) << std::endl;
             return 1;
         }
-        pcb.nextProcess();
+        
+        
 
        if(value >= nextPrint){
             
@@ -268,7 +308,7 @@ int main(int argc,  char* argv[]){
 
     pcb.PrintPCB();
 
-
+    messageQueue.cleanUp();
 
     return 0;
 }
@@ -335,6 +375,8 @@ void killChildren(){
     for(int i = 0; i < 20; i++){
         kill(pcb.getPCB(i).pid, SIGKILL);
     }
+    logFile.close();
+    messageQueue.cleanUp();
     
     exit(0);
 }

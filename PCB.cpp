@@ -1,5 +1,6 @@
 #include "PCB.h"
 #include "constants.h"
+#include "logger.h"
 #include <stdio.h>
 #include <iostream>
 #include <iomanip>
@@ -14,6 +15,7 @@ PCB::PCB()
         pcb[i].pid = 0;
         pcb[i].nanoSeconds = 0;
     }
+    first = true;
 }
 
 PCB::~PCB()
@@ -22,7 +24,7 @@ PCB::~PCB()
 
 void PCB::PrintPCB()
 {
-    std::cout << std::left << std::setw(17) << "Entry:" 
+    logger() << std::left << std::setw(17) << "Entry:" 
           << std::setw(17) << "Occupied:" 
           << std::setw(17) << "PID:" 
           << std::setw(17) << "StartSeconds:" 
@@ -30,7 +32,7 @@ void PCB::PrintPCB()
 
 for(int i = 0; i < 20; i++)
 {
-    std::cout << std::left << std::setw(17) << i 
+    logger() << std::left << std::setw(17) << i 
               << std::setw(17) << pcb[i].occupied 
               << std::setw(17) << pcb[i].pid 
               << std::setw(17) << pcb[i].nanoSeconds / BILLION 
@@ -39,16 +41,13 @@ for(int i = 0; i < 20; i++)
 }
 void PCB::nextProcess()
 {
-    while(pcb[currentProcess].occupied == 0 && count > 0){
-        if(currentProcess < 19)
-        {
-            currentProcess++;
-        }
-        else
-        {
-            currentProcess = 0;
-        }
-    }
+    //this way we start iterating at current process and loop around to the beginning
+    int i = currentProcess;
+    do
+    {
+        i++;
+    }while(pcb[i % 20].occupied == 0);
+    currentProcess = i % 20;
 }
 
 
@@ -100,4 +99,19 @@ ProcessControlBlock PCB::getPCB(int i)
 ProcessControlBlock PCB::getCurrentPCB()
 {
     return pcb[currentProcess];
+}
+int PCB::getCurrentProcess()
+{
+    return currentProcess;
+}
+int PCB::getProccessIndex(pid_t pid)
+{
+    for(int i = 0; i < 20; i++)
+    {
+        if(pcb[i].pid == pid)
+        {
+            return i;
+        }
+    }
+    return -1;
 }

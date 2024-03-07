@@ -8,6 +8,8 @@
 #include "message.h"
 #include <string>
 
+std::list<int> Message::messageIds;
+
 Message::Message(messageTypes type){
     this->sends = type;
     this->recieves = opposite(type);
@@ -29,6 +31,7 @@ void Message::sendMessage(pid_t pid, const char* message){
     key_t key = ftok(pidChar, 539);
 
     int msgId = msgget(key, 0666 | IPC_CREAT);
+    messageIds.push_back(msgId);
     strcpy(buf.mtext, message);
     msgsnd(msgId, &buf, sizeof(buf.mtext), 0);
     std::cout << "Message sent: " << buf.mtext[0] <<  " type: "<< buf.mtype <<  " pid:" << buf.pid << std::endl;
@@ -60,5 +63,11 @@ messageTypes Message::opposite(messageTypes type){
     }
     else{
         return PARENT;
+    }
+}
+
+void Message::cleanUp(){
+    for(int i : messageIds){
+        msgctl(i, IPC_RMID, NULL);
     }
 }

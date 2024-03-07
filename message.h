@@ -2,6 +2,7 @@
 #define MESSAGE_H
 
 #include <unistd.h>
+#include <list>
 
 enum {
     PARENT = 1,
@@ -22,12 +23,17 @@ class Message
         ~Message();
         void sendMessage(pid_t pid, const char* message);
         messageBuffer getMessage(pid_t pid, int flags);
+        void cleanUp();
         
+    protected: 
+        static std::list<int> messageIds;
+
     private:
         
         messageTypes sends;
         messageTypes recieves;
 
         messageTypes opposite(messageTypes type);
+        
 };
 #endif
