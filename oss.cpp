@@ -22,6 +22,7 @@
 #include <fstream>
 #include <iostream>
 #include <sys/ipc.h>
+#include <queue>
 
 #include "constants.h"
 #include "PCB.h"
@@ -41,6 +42,11 @@ Clock sysClock;
 PCB pcb;
 Message messageQueue;
 std::ofstream logFile;
+
+std::queue<ProcessControlBlock> q0;
+std::queue<ProcessControlBlock> q1;
+std::queue<ProcessControlBlock> q2;
+std::queue<ProcessControlBlock> blocked;
 
 
 #pragma endregion
@@ -80,8 +86,12 @@ int main(int argc,  char* argv[]){
     unsigned long long nextTime = 0;
     unsigned long long nextPrint = BILLION / 2;
 
+    unsigned long long q0Time = 10 * MILLION;
+    unsigned long long q1Time = 20 * MILLION;
+    unsigned long long q2Time = 40 * MILLION;
+
     
-      
+    
 
     char secChar[33];
     char nanoChar[33];
