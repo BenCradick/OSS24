@@ -6,7 +6,7 @@
 */
 
 #include "PCB.h"
-#include "constants.h"
+
 #include "logger.h"
 #include <stdio.h>
 #include <iostream>
@@ -58,7 +58,7 @@ void PCB::nextProcess()
 
 
 
-int PCB::addProcess(pid_t pid, unsigned long long nanoSeconds)
+int PCB::addProcess(pid_t pid, long nanoSeconds)
 {
     if(count < 20){
         for(int i = 0; i < 20; i++)

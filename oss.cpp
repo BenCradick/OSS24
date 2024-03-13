@@ -80,15 +80,15 @@ int main(int argc,  char* argv[]){
 
     std::string logFileName = "log.txt";
 
-    unsigned long long value = 0;
-    unsigned long long increment = 135;
+    long value = 0;
+    long increment = 135;
 
-    unsigned long long nextTime = 0;
-    unsigned long long nextPrint = BILLION / 2;
+    long nextTime = 0;
+    long nextPrint = BILLION / 2;
 
-    unsigned long long q0Time = 10 * MILLION;
-    unsigned long long q1Time = 20 * MILLION;
-    unsigned long long q2Time = 40 * MILLION;
+    long q0Time = 10 * MILLION;
+    long q1Time = 20 * MILLION;
+    long q2Time = 40 * MILLION;
 
     
     

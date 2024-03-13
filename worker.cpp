@@ -34,7 +34,7 @@ void die(){
 }
 
 int main(int argc,  char* argv[]){
-    unsigned long long seconds = atoi(argv[1]);
+    long seconds = atoi(argv[1]);
     int nano = atoi(argv[2]);
 
     signal(SIGALRM, (void (*)(int))die);
@@ -47,8 +47,8 @@ int main(int argc,  char* argv[]){
     pid_t parent = getppid();
 
 
-    unsigned long long  time = 0;
-    unsigned long long endTime = 0;
+    long  time = 0;
+    long endTime = 0;
 
     int endSeconds = 0;
     int endNano = 0;
@@ -71,7 +71,7 @@ int main(int argc,  char* argv[]){
 
         
         if(endTime == 0){
-            unsigned long long temp = sysClock.getTime();
+            long temp = sysClock.getTime();
             endTime = temp + (seconds * BILLION) + nano;
 
             endSeconds = sysClock.getSeconds() + seconds;

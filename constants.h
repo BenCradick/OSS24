@@ -12,6 +12,8 @@
 #define BILLION 1000000000
 #define MILLION 1000000
 
+#define long unsigned long long
+
 inline const char* NanoSeconds = "NanoSeconds";
 
 // must be opened in main to be used in logger.h
