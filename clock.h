@@ -14,9 +14,9 @@ class Clock
         ~Clock();
         void init();
         void incrementClock();
-        unsigned long long  getTime();
+        ull  getTime();
         int getSeconds();
-        unsigned long long getNanoSeconds();
+        ull getNanoSeconds();
         void setIncrement(int CurrentChildren);
         void unlink();
         void unmap();
@@ -28,7 +28,7 @@ class Clock
         int NanoSecondSharedMemoryFD;
         void* NanoSecondSharedMemoryPointer;
 
-        unsigned long long time;
+        ull time;
 
         unsigned long increment;
 };

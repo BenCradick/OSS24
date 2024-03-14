@@ -58,7 +58,7 @@ void PCB::nextProcess()
 
 
 
-int PCB::addProcess(pid_t pid, long nanoSeconds)
+int PCB::addProcess(pid_t pid, ull nanoSeconds)
 {
     if(count < 20){
         for(int i = 0; i < 20; i++)

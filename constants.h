@@ -12,7 +12,7 @@
 #define BILLION 1000000000
 #define MILLION 1000000
 
-#define long unsigned long long
+typedef unsigned long long ull;
 
 inline const char* NanoSeconds = "NanoSeconds";
 

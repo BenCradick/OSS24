@@ -16,9 +16,9 @@ struct ProcessControlBlock
 {
     int occupied;     
     pid_t pid;        
-    long nanoSeconds;
+    ull nanoSeconds;
     int blocked;
-    long blockedTime;    
+    ull blockedTime;    
 };
 
 class PCB
@@ -32,12 +32,12 @@ class PCB
         void PrintPCB();
 
         //  returns 0 if successful, -1 if PCB is full
-        int addProcess(pid_t pid, long nanoSeconds);
+        int addProcess(pid_t pid, ull nanoSeconds);
         //  returns 0 if successful, -1 if PCB does not contain the process
         int removeProcess(pid_t pid);
         int getNumProcesses();
 
-        void setBlocked(pid_t pid, long blockedTime);
+        void setBlocked(pid_t pid, ull blockedTime);
 
         void nextProcess();
 

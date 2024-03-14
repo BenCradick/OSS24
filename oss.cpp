@@ -80,18 +80,15 @@ int main(int argc,  char* argv[]){
 
     std::string logFileName = "log.txt";
 
-    long value = 0;
-    long increment = 135;
+    ull value = 0;
+    ull increment = 135;
 
-    long nextTime = 0;
-    long nextPrint = BILLION / 2;
+    ull nextTime = 0;
+    ull nextPrint = BILLION / 2;
 
-    long q0Time = 10 * MILLION;
-    long q1Time = 20 * MILLION;
-    long q2Time = 40 * MILLION;
-
-    
-    
+    ull q0Time = 10 * MILLION;
+    ull q1Time = 20 * MILLION;
+    ull q2Time = 40 * MILLION;
 
     char secChar[33];
     char nanoChar[33];
@@ -104,21 +101,17 @@ int main(int argc,  char* argv[]){
     messageQueue = Message(messageTypes::PARENT);
     messageBuffer message;
 
-    
-
     #pragma endregion
-
-
-
-
-    
 
 
     // set up the alarm and signal handling
     signal(SIGALRM, (void (*)(int))killChildren);
     signal(SIGINT, (void (*)(int))killChildren);
+
     alarm(60);
+
     #pragma region ArgumentParsing
+
     while((Opt = getopt(argc, argv, "n:s:t:i:f:h")) != -1){
         // opt arguments -n, -s, -t -i, -h
         switch(Opt){
