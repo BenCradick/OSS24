@@ -29,7 +29,7 @@
 #include "clock.h"
 #include "message.h"
 #include "logger.h"
-
+#include "queues.h"
 
 
 #pragma region GlobalVariables
@@ -43,10 +43,7 @@ PCB pcb;
 Message messageQueue;
 std::ofstream logFile;
 
-std::queue<ProcessControlBlock> q0;
-std::queue<ProcessControlBlock> q1;
-std::queue<ProcessControlBlock> q2;
-std::queue<ProcessControlBlock> blocked;
+
 
 
 #pragma endregion
