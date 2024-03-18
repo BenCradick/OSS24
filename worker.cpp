@@ -42,6 +42,7 @@ int main(int argc,  char* argv[]){
 
 
     bool terminate = false;
+    bool blocked = false;
 
     pid_t me = getpid();
     pid_t parent = getppid();
@@ -49,6 +50,7 @@ int main(int argc,  char* argv[]){
 
     ull  time = 0;
     ull endTime = 0;
+    ull timeUsed = 0;
 
     int endSeconds = 0;
     int endNano = 0;
@@ -60,12 +62,14 @@ int main(int argc,  char* argv[]){
 
     char message = '0';
 
+    messageBuffer buf;
+
     sysClock = Clock();
     messageQueue = Message(messageTypes::CHILD);
 
     do {
 
-        messageQueue.getMessage(me, 0);
+        buf = messageQueue.getMessage(me, 0);
 
         sysClock.update();
 
@@ -96,7 +100,15 @@ int main(int argc,  char* argv[]){
             message = '1';
         }
 
-        messageQueue.sendMessage(me, &message);
+        
+
+        buf.mtype = messageTypes::PARENT;
+        buf.pid = me;
+        buf.terminate = terminate;
+        buf.blocked = blocked;
+        buf.timeUsed = timeUsed;
+
+        messageQueue.sendMessage(buf);
         iterations++;
         printf("WORKER PID:%d PPID:%d SysClockSec: %d SysclockNano: %d TermTimeS: %d TermTimeNano: %d -- %d iterations have passed since starting\n",
                 me, parent, currentSeconds, currentNano, endSeconds, endNano, iterations);

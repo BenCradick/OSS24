@@ -12,13 +12,27 @@
 
 #include <unistd.h>
 #include "constants.h"
+
+typedef enum {
+        q0 = 0,
+        q1 = 1,
+        q2 = 2,
+        blocked = 3
+    } queueType;
+
+
 struct ProcessControlBlock
 {
+        
+
     int occupied;     
     pid_t pid;        
     ull nanoSeconds;
     int blocked;
-    ull blockedTime;    
+    ull blockedTime;  
+
+    queueType queue;  
+
 };
 
 class PCB

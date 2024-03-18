@@ -79,6 +79,7 @@ int main(int argc,  char* argv[]){
 
     ull value = 0;
     ull increment = 135;
+    ull quanta = 0;
 
     ull nextTime = 0;
     ull nextPrint = BILLION / 2;
@@ -86,6 +87,8 @@ int main(int argc,  char* argv[]){
     ull q0Time = 10 * MILLION;
     ull q1Time = 20 * MILLION;
     ull q2Time = 40 * MILLION;
+
+    bool idle = true;
 
     char secChar[33];
     char nanoChar[33];
@@ -96,7 +99,7 @@ int main(int argc,  char* argv[]){
     sysClock.init();
 
     messageQueue = Message(messageTypes::PARENT);
-    messageBuffer message;
+    messageBuffer buf;
 
     #pragma endregion
 
@@ -180,6 +183,9 @@ int main(int argc,  char* argv[]){
     #pragma region MainLoop
     
     do{
+        //TODO: turn idle to false any time some process is running.
+        idle = true;
+
         sysClock.setIncrement(CurrentChildren);
         sysClock.incrementClock();
         value = sysClock.getTime();
@@ -227,9 +233,13 @@ int main(int argc,  char* argv[]){
             nextTime = value + launchInterval * MILLION;
         }
     
-        
+        buf.blocked = 0;
+        buf.terminate = 0;
+        buf.pid = pcb.getCurrentPCB().pid;
+        buf.mtype = messageTypes::PARENT;
+        buf.timeUsed = quanta;
 
-        messageQueue.sendMessage(pcb.getCurrentPCB().pid, "0");
+        messageQueue.sendMessage(buf);
 
         //logging that message was sent to worker.
         logger() << "OSS: Sending message to worker " 
@@ -242,13 +252,13 @@ int main(int argc,  char* argv[]){
                     << sysClock.getNanoSeconds()
                     << std::endl;
 
-        message = messageQueue.getMessage(pcb.getCurrentPCB().pid, IPC_NOWAIT);
+        buf = messageQueue.getMessage(pcb.getCurrentPCB().pid, IPC_NOWAIT);
 
         //logging that message was received from worker.
         logger() << "OSS: Received message from worker " 
-                    << pcb.getProccessIndex(message.pid)
+                    << pcb.getProccessIndex(buf.pid)
                     << " PID: " 
-                    << message.pid
+                    << buf.pid
                     << " at time Sec:"
                     << sysClock.getSeconds()
                     << " Nano: "  
@@ -256,21 +266,21 @@ int main(int argc,  char* argv[]){
                     << std::endl; 
         pcb.nextProcess();
 
-        if(message.pid > 0 && message.mtext[0] == '1'){
+        if(buf.pid > 0 && buf.mtext[0] == '1'){
             CurrentChildren--;
 
             logger() << "OSS: Worker "
-                        << pcb.getProccessIndex(message.pid)
+                        << pcb.getProccessIndex(buf.pid)
                         << " PID: "
-                        << message.pid
+                        << buf.pid
                         << " is planning to terminate."
                         << std::endl;
             
-            pcb.removeProcess(message.pid);
-            message.pid = -1;
+            pcb.removeProcess(buf.pid);
+            buf.pid = -1;
         }
         //handles actual errors
-        else if (message.pid < 0 && errno != ENOMSG){
+        else if (buf.pid < 0 && errno != ENOMSG){
             logger() << "Error: Failed to wait for child process\nError: " <<  strerror(errno) << std::endl;
             return 1;
         }

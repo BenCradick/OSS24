@@ -24,22 +24,21 @@ Message::Message(){};
 Message::~Message(){
 }
 
-void Message::sendMessage(pid_t pid, const char* message){
-    struct messageBuffer buf;
-    buf.mtype = sends;
-    buf.pid = pid;
-
+void Message::sendMessage(messageBuffer buf){
 
     //apparently is bad practice to just use the pid as the key
-    std::string pidStr = std::to_string(pid);
+    std::string pidStr = std::to_string(buf.pid);
     const char* pidChar = pidStr.c_str();
 
     key_t key = ftok(pidChar, 539);
 
     int msgId = msgget(key, 0666 | IPC_CREAT);
     messageIds.push_back(msgId);
-    strcpy(buf.mtext, message);
-    msgsnd(msgId, &buf, sizeof(buf.mtext), 0);
+    
+
+    msgsnd(msgId, &buf, sizeof(buf.mtext)+ sizeof(buf.blocked) 
+    + sizeof(buf.pid) + sizeof(buf.terminate) + sizeof(buf.timeUsed), 0);
+
     std::cout << "Message sent: " << buf.mtext[0] <<  " type: "<< buf.mtype <<  " pid:" << buf.pid << std::endl;
 }
 
@@ -57,7 +56,8 @@ messageBuffer Message::getMessage(pid_t pid, int flags){
     char char_message[100];
 
     int msgId = msgget(key, 0666 | IPC_CREAT);
-    msgrcv(msgId, &buf, sizeof(buf.mtext), recieves, 0);
+    msgrcv(msgId, &buf, sizeof(buf.mtext)+ sizeof(buf.blocked) 
+    + sizeof(buf.pid) + sizeof(buf.terminate) + sizeof(buf.timeUsed), recieves, 0);
     std::cout << "Message recieved: " << buf.mtext[0] <<  " type: "<< buf.mtype <<  " pid:" << buf.pid << std::endl;
     
     return buf;

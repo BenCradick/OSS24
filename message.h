@@ -14,11 +14,15 @@ enum {
     PARENT = 1,
     CHILD = 2
 } typedef messageTypes;
-struct messageBuffer // Add 'struct' keyword here
+struct messageBuffer 
 {
     long mtype;
     char mtext[100];
     pid_t pid;
+    ull timeUsed;
+
+    bool terminate;
+    bool blocked;
 };
 
 class Message
@@ -27,7 +31,7 @@ class Message
         Message(messageTypes type);
         Message();
         ~Message();
-        void sendMessage(pid_t pid, const char* message);
+        void sendMessage(messageBuffer buf);
         messageBuffer getMessage(pid_t pid, int flags);
         void cleanUp();
         
