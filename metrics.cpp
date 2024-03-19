@@ -19,6 +19,6 @@ void Metrics::incrementCPU(ull quantum) {
     cpuTime += quantum;
 }
 
-void Metrics::incrementIdle(ull quantum){
-    idleTime += quantum;
+void Metrics::incrementIdle(){
+    idleTime += increment;
 }

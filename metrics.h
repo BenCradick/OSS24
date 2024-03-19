@@ -16,12 +16,12 @@ class Metrics {
         ~Metrics();
         void incrementBlocked(ull quantum);
         void incrementCPU(ull quantum);
+        void incrementIdle(); 
     
     private:
         ull blockTime;
         ull cpuTime;
         ull idleTime;
-
 };
 
 #endif

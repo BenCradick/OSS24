@@ -5,7 +5,6 @@
     Due: 03-07-2024 
 */
 #include "clock.h"
-#include "constants.h"
 #include <stdio.h>
 #include <sys/mman.h>
 #include <unistd.h>
@@ -29,6 +28,13 @@ void Clock::incrementClock(){
     time += increment;
     memcpy(NanoSecondSharedMemoryPointer, &time, sizeof(ull));
 }
+void Clock::incrementClock(ull increment){
+    time += increment;
+    memcpy(NanoSecondSharedMemoryPointer, &time, sizeof(ull));
+}
+void Clock::scheduleIncrement(){
+    time += MILLION;
+}
 ull Clock::getTime(){
     return time;
 }
@@ -51,14 +57,4 @@ void Clock::unmap(){
 
 void Clock::update(){
     memcpy(&time, NanoSecondSharedMemoryPointer, sizeof(ull));
-}
-void Clock::setIncrement(int CurrentChildren){
-    if(CurrentChildren == 0)
-    {
-        increment = 250000000;
-    }
-    else
-    {
-        increment = 250000000 / CurrentChildren;
-    }
 }

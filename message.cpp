@@ -56,8 +56,43 @@ messageBuffer Message::getMessage(pid_t pid, int flags){
     char char_message[100];
 
     int msgId = msgget(key, 0666 | IPC_CREAT);
-    msgrcv(msgId, &buf, sizeof(buf.mtext)+ sizeof(buf.blocked) 
-    + sizeof(buf.pid) + sizeof(buf.terminate) + sizeof(buf.timeUsed), recieves, 0);
+    if( -1 == msgrcv(msgId, &buf, sizeof(buf.mtext)+ sizeof(buf.blocked) 
+    + sizeof(buf.pid) + sizeof(buf.terminate) + sizeof(buf.timeUsed), recieves, 0)){
+        buf.blocked = 0;
+        buf.terminate = 0;
+        buf.timeUsed = 0;
+        buf.mtext[0] = '0';
+        buf.pid = 0;
+
+        switch(errno){
+            case ENOMSG:
+                break;
+            case E2BIG:
+                std::cout << "E2BIG" << std::endl;
+                break;
+            case EACCES:
+                std::cout << "EACCES" << std::endl;
+                break;
+            case EAGAIN:
+                std::cout << "EAGAIN" << std::endl;
+                break;
+            case EFAULT:
+                std::cout << "EFAULT" << std::endl;
+                break;
+            case EIDRM:
+                std::cout << "EIDRM" << std::endl;
+                break;
+            case EINTR:
+                std::cout << "EINTR" << std::endl;
+                break;
+
+            default:
+                std::cout << "Unknown error" << std::endl;
+                break;
+        }
+        return buf;
+
+    }
     std::cout << "Message recieved: " << buf.mtext[0] <<  " type: "<< buf.mtype <<  " pid:" << buf.pid << std::endl;
     
     return buf;

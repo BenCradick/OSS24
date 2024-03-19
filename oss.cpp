@@ -30,6 +30,7 @@
 #include "message.h"
 #include "logger.h"
 #include "queues.h"
+#include "metrics.h"
 
 
 #pragma region GlobalVariables
@@ -100,6 +101,8 @@ int main(int argc,  char* argv[]){
 
     messageQueue = Message(messageTypes::PARENT);
     messageBuffer buf;
+
+    Metrics metrics = Metrics();
 
     #pragma endregion
 
@@ -185,106 +188,269 @@ int main(int argc,  char* argv[]){
     do{
         //TODO: turn idle to false any time some process is running.
         idle = true;
-
-        sysClock.setIncrement(CurrentChildren);
-        sysClock.incrementClock();
+        
         value = sysClock.getTime();
 
-        /*
-        * Documenting the fork() process return values for future reference
-        * For more info see: https://man7.org/linux/man-pages/man2/fork.2.html
-        * Forks the process and stores the return value in IsParent
-        * If the return value is 0, the process is a child
-        * If the return value is -1, the process failed to fork
-        * If the return value is greater than 0, the process is the parent
-        */
-
-       
-
-        if(CurrentChildren < MaxProcess && AllChildren < TotalChildren && nextTime <= value){
-            IsParent = fork();
-        }
-        // launches the ./user program if the process is a child
-        if(IsParent == 0){
-            char *args[] = {"./worker", itoa(secMax, secChar, 10), itoa(nanoMax, nanoChar, 10), NULL};
-            execvp(args[0], args);
-            logger() << "Error: Failed to launch child process" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-        else if (IsParent > 0){
-            // keep track of the number of children
-            CurrentChildren++;
-            AllChildren++;
-
-            //add the child to the process table
-
-            pcb.addProcess(IsParent, value);
-            pcb.nextProcess();
-
-        }
-        else if(IsParent == -1){
-                logger() << "Error: Failed to wait for child process\nError: " << strerror(errno) << std::endl;
-                return 1;
-            }
-        
-        IsParent = -2;
        
         if(nextTime <= value){
             nextTime = value + launchInterval * MILLION;
         }
-    
-        buf.blocked = 0;
-        buf.terminate = 0;
-        buf.pid = pcb.getCurrentPCB().pid;
-        buf.mtype = messageTypes::PARENT;
-        buf.timeUsed = quanta;
 
-        messageQueue.sendMessage(buf);
 
-        //logging that message was sent to worker.
-        logger() << "OSS: Sending message to worker " 
-                    << pcb.getCurrentProcess() 
-                    << " PID: " 
-                    << pcb.getCurrentPCB().pid
-                    << " at time Sec:"
-                    << sysClock.getSeconds()
-                    << " Nano: "  
-                    << sysClock.getNanoSeconds()
-                    << std::endl;
+        #pragma region QueueManagement
+        if(!blocked.empty() && blocked.front().blockedTime <= value){
+            ProcessControlBlock temp = blocked.front();
+            temp.blocked = false;
+            temp.blockedTime = 0;
+            pcb.updateProcess(temp);
 
-        buf = messageQueue.getMessage(pcb.getCurrentPCB().pid, IPC_NOWAIT);
+            idle = false;
 
-        //logging that message was received from worker.
-        logger() << "OSS: Received message from worker " 
-                    << pcb.getProccessIndex(buf.pid)
-                    << " PID: " 
-                    << buf.pid
-                    << " at time Sec:"
-                    << sysClock.getSeconds()
-                    << " Nano: "  
-                    << sysClock.getNanoSeconds()
-                    << std::endl; 
-        pcb.nextProcess();
-
-        if(buf.pid > 0 && buf.mtext[0] == '1'){
-            CurrentChildren--;
-
-            logger() << "OSS: Worker "
-                        << pcb.getProccessIndex(buf.pid)
-                        << " PID: "
-                        << buf.pid
-                        << " is planning to terminate."
-                        << std::endl;
-            
-            pcb.removeProcess(buf.pid);
-            buf.pid = -1;
+            switch(temp.queue){
+                case queueType::q0:
+                    logger() << "OSS: Process with PID: " 
+                            << temp.pid 
+                            << " has been unblocked and placed back in Queue 0 at time Sec:"
+                            << sysClock.getSeconds()
+                            << " Nano: "
+                            << sysClock.getNanoSeconds()
+                            << std::endl;
+                    q0.push(temp);
+                    break;
+                case queueType::q1:
+                    logger() << "OSS: Process with PID: " 
+                            << temp.pid 
+                            << " has been unblocked and placed back in Queue 1 at time Sec:"
+                            << sysClock.getSeconds()
+                            << " Nano: "
+                            << sysClock.getNanoSeconds()
+                            << std::endl;
+                    q1.push(temp);
+                    break;
+                case queueType::q2:
+                    logger() << "OSS: Process with PID: " 
+                            << temp.pid 
+                            << " has been unblocked and placed back in Queue 2 at time Sec:"
+                            << sysClock.getSeconds()
+                            << " Nano: "
+                            << sysClock.getNanoSeconds()
+                            << std::endl;
+                    q2.push(temp);
+                    break;
+            }
+            blocked.pop();
         }
-        //handles actual errors
-        else if (buf.pid < 0 && errno != ENOMSG){
-            logger() << "Error: Failed to wait for child process\nError: " <<  strerror(errno) << std::endl;
-            return 1;
+        else{    
+            if(!q0.empty()){
+                ProcessControlBlock temp = q0.front();
+                buf.blocked = 0;
+                buf.terminate = 0;
+                buf.pid = temp.pid;
+                buf.mtype = messageTypes::PARENT;
+                buf.mtext[0] = '0';
+                buf.timeUsed = q0Time;
+
+                idle = false;
+
+                logger() << "OSS: Dispatching process with PID: " 
+                            << temp.pid 
+                            << " from Queue " 
+                            << temp.queue
+                            << " at time Sec:"
+                            << sysClock.getSeconds()
+                            << " Nano: "
+                            << sysClock.getNanoSeconds()
+                            << std::endl;
+
+                sysClock.scheduleIncrement();
+
+                messageQueue.sendMessage(buf);
+
+                buf = messageQueue.getMessage(temp.pid, 0);
+
+                sysClock.incrementClock(buf.timeUsed);
+
+                if(buf.terminate){
+                    logger() << "OSS: Process with PID: " 
+                            << temp.pid 
+                            << " has terminated at time Sec:"
+                            << sysClock.getSeconds()
+                            << " Nano: "
+                            << sysClock.getNanoSeconds()
+                            << std::endl;
+                    pcb.removeProcess(temp.pid);
+                    CurrentChildren--;
+                    q0.pop();
+                }
+                else if(buf.blocked){
+                    logger() << "OSS: Process with PID: " 
+                            << buf.pid 
+                            << " has been blocked at time Sec:"
+                            << sysClock.getSeconds()
+                            << " Nano: "
+                            << sysClock.getNanoSeconds()
+                            << std::endl;
+                    temp.blocked = true;
+                    temp.blockedTime = sysClock.getTime() + BILLION;
+                    pcb.updateProcess(temp);
+                    q0.pop();
+                }
+                else{
+                    logger() << "OSS: Process with PID: " 
+                            << temp.pid 
+                            << " has been moved to Queue 1 at time Sec:"
+                            << sysClock.getSeconds()
+                            << " Nano: "
+                            << sysClock.getNanoSeconds()
+                            << std::endl;
+                    temp.queue = queueType::q1;
+                    pcb.updateProcess(temp);
+
+                    
+                    q1.push(temp);
+                    q0.pop();
+                }
+
+                
+
+            }
+            else if(!q1.empty()){
+                ProcessControlBlock temp = q1.front();
+                buf.blocked = 0;
+                buf.terminate = 0;
+                buf.pid = temp.pid;
+                buf.mtype = messageTypes::PARENT;
+                buf.mtext[0] = '0';
+                buf.timeUsed = q1Time;
+
+                idle = false;
+
+                logger() << "OSS: Dispatching process with PID: " 
+                            << temp.pid 
+                            << " from Queue " 
+                            << temp.queue
+                            << " at time Sec:"
+                            << sysClock.getSeconds()
+                            << " Nano: "
+                            << sysClock.getNanoSeconds()
+                            << std::endl;
+
+                sysClock.scheduleIncrement();
+                messageQueue.sendMessage(buf);
+
+                buf = messageQueue.getMessage(temp.pid, 0);
+
+                sysClock.incrementClock(buf.timeUsed);
+
+                if(buf.terminate){
+                        logger() << "OSS: Process with PID: " 
+                            << temp.pid 
+                            << " has terminated at time Sec:"
+                            << sysClock.getSeconds()
+                            << " Nano: "
+                            << sysClock.getNanoSeconds()
+                            << std::endl;
+                    pcb.removeProcess(temp.pid);
+                    CurrentChildren--;
+                    q1.pop();
+                }
+                else if(buf.blocked){
+                    logger() << "OSS: Process with PID: " 
+                            << buf.pid 
+                            << " has been blocked at time Sec:"
+                            << sysClock.getSeconds()
+                            << " Nano: "
+                            << sysClock.getNanoSeconds()
+                            << std::endl;
+                    temp.blocked = true;
+                    temp.blockedTime = sysClock.getTime() + BILLION;
+                    pcb.updateProcess(temp);
+                    q1.pop();
+                }
+                else{
+                    logger() << "OSS: Process with PID: " 
+                            << temp.pid 
+                            << " has been moved to Queue 2 at time Sec:"
+                            << sysClock.getSeconds()
+                            << " Nano: "
+                            << sysClock.getNanoSeconds()
+                            << std::endl;
+                    temp.queue = queueType::q2;
+                    pcb.updateProcess(temp);
+                    q2.push(temp);
+                    q1.pop();
+                }
+            }
+            else if(!q2.empty()){
+                ProcessControlBlock temp = q2.front();
+                buf.blocked = 0;
+                buf.terminate = 0;
+                buf.pid = temp.pid;
+                buf.mtype = messageTypes::PARENT;
+                buf.mtext[0] = '0';
+                buf.timeUsed = q2Time;
+
+                idle = false;
+
+                logger() << "OSS: Dispatching process with PID: " 
+                            << temp.pid 
+                            << " from Queue " 
+                            << temp.queue
+                            << " at time Sec:"
+                            << sysClock.getSeconds()
+                            << " Nano: "
+                            << sysClock.getNanoSeconds()
+                            << std::endl;
+
+                sysClock.scheduleIncrement();
+                messageQueue.sendMessage(buf);
+
+                buf = messageQueue.getMessage(temp.pid, 0);
+
+                sysClock.incrementClock(buf.timeUsed);
+
+                if(buf.terminate){
+                    logger() << "OSS: Process with PID: " 
+                            << temp.pid 
+                            << " has terminated at time Sec:"
+                            << sysClock.getSeconds()
+                            << " Nano: "
+                            << sysClock.getNanoSeconds()
+                            << std::endl;
+                    pcb.removeProcess(temp.pid);
+                    CurrentChildren--;
+                    q2.pop();
+                }
+                else if(buf.blocked){
+                    logger() << "OSS: Process with PID: " 
+                            << buf.pid 
+                            << " has been blocked at time Sec:"
+                            << sysClock.getSeconds()
+                            << " Nano: "
+                            << sysClock.getNanoSeconds()
+                            << std::endl;
+                    temp.blocked = true;
+                    temp.blockedTime = sysClock.getTime() + BILLION;
+                    pcb.updateProcess(temp);
+                    q2.pop();
+                }
+                else{
+                    logger() << "OSS: Process with PID: " 
+                            << temp.pid 
+                            << " has been placed back in Queue 2 at time Sec:"
+                            << sysClock.getSeconds()
+                            << " Nano: "
+                            << sysClock.getNanoSeconds()
+                            << std::endl;                
+                    q2.push(temp);
+                    q2.pop();
+                }
+            }
         }
+        #pragma endregion
+
         
+
         
 
        if(value >= nextPrint){
@@ -296,15 +462,60 @@ int main(int argc,  char* argv[]){
                 nextPrint += BILLION / 2;
             }
         }
-        //nextTime = value + launchInterval * MILLION;
-        
 
+    
         
+    
+    /*
+    * Documenting the fork() process return values for future reference
+    * For more info see: https://man7.org/linux/man-pages/man2/fork.2.html
+    * Forks the process and stores the return value in IsParent
+    * If the return value is 0, the process is a child
+    * If the return value is -1, the process failed to fork
+    * If the return value is greater than 0, the process is the parent
+    */
 
+    
+
+    if(CurrentChildren < MaxProcess && AllChildren < TotalChildren && nextTime <= value){
+        IsParent = fork();
+    }
+    // launches the ./user program if the process is a child
+    if(IsParent == 0){
+        char *args[] = {"./worker", itoa(secMax, secChar, 10), itoa(nanoMax, nanoChar, 10), NULL};
+        execvp(args[0], args);
+        logger() << "Error: Failed to launch child process" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    else if (IsParent > 0){
+        // keep track of the number of children
+        CurrentChildren++;
+        AllChildren++;
+
+        idle = false;
+
+        //add the child to the process table add process now adds child to q0 by default, kinda spaghetti
+
+        pcb.addProcess(IsParent, value);
+        
+    }
+    else if(IsParent == -1){
+            logger() << "Error: Failed to launch child process\nError: " << strerror(errno) << std::endl;
+            return 1;
+    }
+    
+    IsParent = -2;
+        
+    if(idle){
+        sysClock.incrementClock();
+        metrics.incrementIdle();
+        
+    }
         
         
     // AllChildren is number of chilren run, TotalChildren is the number specified.
-    }while(CurrentChildren > 0);
+    }while(CurrentChildren > 0 && AllChildren < TotalChildren);
+    
     #pragma endregion
 
     pcb.PrintPCB();

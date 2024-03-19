@@ -12,6 +12,8 @@
 #include <iostream>
 #include <iomanip>
 
+#include "queues.h"
+
 PCB::PCB()
 {
     count = 0;
@@ -36,14 +38,14 @@ void PCB::PrintPCB()
           << std::setw(17) << "StartSeconds:" 
           << std::setw(17) << "StartNanoSeconds:" << std::endl;
 
-for(int i = 0; i < 20; i++)
-{
-    logger() << std::left << std::setw(17) << i 
-              << std::setw(17) << pcb[i].occupied 
-              << std::setw(17) << pcb[i].pid 
-              << std::setw(17) << pcb[i].nanoSeconds / BILLION 
-              << std::setw(17) << pcb[i].nanoSeconds % BILLION << std::endl;
-}
+    for(int i = 0; i < 20; i++)
+    {
+        logger() << std::left << std::setw(17) << i 
+                << std::setw(17) << pcb[i].occupied 
+                << std::setw(17) << pcb[i].pid 
+                << std::setw(17) << pcb[i].nanoSeconds / BILLION 
+                << std::setw(17) << pcb[i].nanoSeconds % BILLION << std::endl;
+    }
 }
 void PCB::nextProcess()
 {
@@ -68,6 +70,11 @@ int PCB::addProcess(pid_t pid, ull nanoSeconds)
                 pcb[i].occupied = 1;
                 pcb[i].pid = pid;
                 pcb[i].nanoSeconds = nanoSeconds;
+                pcb[i].queue = queueType::q0;
+                pcb[i].blocked = 0;
+
+                q0.push(pcb[i]);
+                
                 count++;
                 return 0;
             }
@@ -75,6 +82,17 @@ int PCB::addProcess(pid_t pid, ull nanoSeconds)
         return -1;
     }
     return -1;
+}
+
+void PCB::updateProcess(ProcessControlBlock pcb)
+{
+    for(int i = 0; i < 20; i++)
+    {
+        if(this->pcb[i].pid == pcb.pid)
+        {
+            this->pcb[i] = pcb;
+        }
+    }
 }
 
 int PCB::removeProcess(pid_t pid)
@@ -110,14 +128,13 @@ int PCB::getCurrentProcess()
 {
     return currentProcess;
 }
-int PCB::getProccessIndex(pid_t pid)
+ProcessControlBlock PCB::getProccessByPid(pid_t pid)
 {
     for(int i = 0; i < 20; i++)
     {
         if(pcb[i].pid == pid)
         {
-            return i;
+            return pcb[i];
         }
     }
-    return -1;
 }

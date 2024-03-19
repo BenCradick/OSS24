@@ -16,8 +16,7 @@
 typedef enum {
         q0 = 0,
         q1 = 1,
-        q2 = 2,
-        blocked = 3
+        q2 = 2
     } queueType;
 
 
@@ -28,7 +27,7 @@ struct ProcessControlBlock
     int occupied;     
     pid_t pid;        
     ull nanoSeconds;
-    int blocked;
+    bool blocked;
     ull blockedTime;  
 
     queueType queue;  
@@ -51,6 +50,8 @@ class PCB
         int removeProcess(pid_t pid);
         int getNumProcesses();
 
+        void updateProcess(ProcessControlBlock pcb);
+
         void setBlocked(pid_t pid, ull blockedTime);
 
         void nextProcess();
@@ -59,7 +60,7 @@ class PCB
         ProcessControlBlock getPCB(int i);
         ProcessControlBlock getCurrentPCB();
         int getCurrentProcess();
-        int getProccessIndex(pid_t pid);
+        ProcessControlBlock getProccessByPid(pid_t pid);
         
     private:
         ProcessControlBlock pcb[20]; 

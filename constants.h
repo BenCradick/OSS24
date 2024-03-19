@@ -16,6 +16,8 @@ typedef unsigned long long ull;
 
 inline const char* NanoSeconds = "NanoSeconds";
 
+ull increment = 10 * MILLION;
+
 // must be opened in main to be used in logger.h
 extern std::ofstream logFile;
 #endif

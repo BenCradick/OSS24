@@ -7,6 +7,8 @@
 #ifndef CLOCK_H
 #define CLOCK_H
 
+#include "constants.h"
+
 class Clock
 {
     public:
@@ -14,10 +16,12 @@ class Clock
         ~Clock();
         void init();
         void incrementClock();
+        void incrementClock(ull increment);
+        void scheduleIncrement();
         ull  getTime();
         int getSeconds();
         ull getNanoSeconds();
-        void setIncrement(int CurrentChildren);
+
         void unlink();
         void unmap();
         void update();
@@ -30,6 +34,5 @@ class Clock
 
         ull time;
 
-        unsigned long increment;
 };
 #endif
