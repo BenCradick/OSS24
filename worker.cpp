@@ -47,6 +47,9 @@ int main(int argc,  char* argv[]){
     pid_t me = getpid();
     pid_t parent = getppid();
 
+    srand(me);
+    int random;
+
 
     ull  time = 0;
     ull endTime = 0;
@@ -73,6 +76,8 @@ int main(int argc,  char* argv[]){
 
         sysClock.update();
 
+         random = rand() % 100;
+
         
         if(endTime == 0){
             ull temp = sysClock.getTime();
@@ -96,8 +101,22 @@ int main(int argc,  char* argv[]){
         currentNano = sysClock.getNanoSeconds();
 
         if(time >= endTime){
+            // write termination lifecycle
             terminate = true;
             message = '1';
+        }
+        else if(random < 10){
+            // write blocked lifecycle
+            blocked = true;
+            message = '2';
+        }
+        else if(random < 90){
+            // write normal lifecycle
+            message = '0';
+        }
+        else{
+            // write terminate lifecycle
+            message = '0';
         }
 
         
@@ -114,7 +133,7 @@ int main(int argc,  char* argv[]){
                 me, parent, currentSeconds, currentNano, endSeconds, endNano, iterations);
         
     
-    }while(!terminate);
+    }while(!buf.terminate);
 
 
     sysClock.update();
